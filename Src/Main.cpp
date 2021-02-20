@@ -3,6 +3,7 @@
 #include <string>
 #include <cstring>
 #include <csignal>
+#include <climits>
 #include <udns.h>
 
 #include "ILogger.h"
@@ -10,6 +11,7 @@
 #include "IPAddress.h"
 #include "MessageBroker.h"
 #include "ShutdownHandler.h"
+#include "JobDispatcher.h"
 
 void usage(const std::string &self)
 {
@@ -18,6 +20,7 @@ void usage(const std::string &self)
     std::cerr<<"    -p <port-num> TCP port number to listen at."<<std::endl;
     std::cerr<<"  optional parameters:"<<std::endl;
     std::cerr<<"    -l <ip-addr> listen ip-address"<<std::endl;
+    std::cerr<<"    -w <count> workers count, 100 by default"<<std::endl;
 }
 
 int param_error(const std::string &self, const std::string &message)
@@ -75,7 +78,16 @@ int main (int argc, char *argv[])
     }
 
     std::vector<IPAddress> listenAddrs;
-    listenAddrs.push_back(IPAddress(args["-l"]));
+    listenAddrs.push_back(listenAddrIsSet?IPAddress(args["-l"]):IPAddress());
+
+    ushort workersCount=100;
+    if(args.find("-w")!=args.end())
+    {
+        int cnt=std::atoi(args["-w"].c_str());
+        if(cnt<1 || cnt>USHRT_MAX)
+            return param_error(argv[0],"workers count value is invalid!");
+        workersCount=static_cast<ushort>(cnt);
+    }
 
     StdioLoggerFactory logFactory;
     auto mainLogger=logFactory.CreateLogger("Main");
@@ -87,7 +99,9 @@ int main (int argc, char *argv[])
     ShutdownHandler shutdownHandler;
     messageBroker.AddSubscriber(shutdownHandler);
 
-
+    //create instances for main workers
+    JobDispatcher jobDispatcher(*mainLogger,messageBroker,workersCount);
+    messageBroker.AddSubscriber(jobDispatcher);
 
     //create sigset_t struct with signals
     sigset_t sigset;
@@ -99,7 +113,7 @@ int main (int argc, char *argv[])
     }
 
     //start background workers, or perform post-setup init
-    //<worker>.Startup();
+    jobDispatcher.Startup();
 
     //main loop
 
@@ -129,10 +143,10 @@ int main (int argc, char *argv[])
     }
 
     //request shutdown of background workers
-    //<worker>.RequestShutdown();
+    jobDispatcher.RequestShutdown();
 
     //wait for background workers shutdown complete
-    //<worker>.Shutdown();
+    jobDispatcher.Shutdown();
 
     logFactory.DestroyLogger(mainLogger);
 
