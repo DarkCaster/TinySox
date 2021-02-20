@@ -6,6 +6,7 @@
 enum MsgType
 {
     MSG_SHUTDOWN,
+    MSG_NEW_CLIENT,
 };
 
 class IMessage
@@ -22,6 +23,14 @@ class IShutdownMessage : public IMessage
         IShutdownMessage(int _ec):IMessage(MSG_SHUTDOWN),ec(_ec){}
     public:
         const int ec;
+};
+
+class INewClientMessage : public IMessage
+{
+    protected:
+        INewClientMessage(int _fd):IMessage(MSG_NEW_CLIENT),fd(_fd){}
+    public:
+        const int fd;
 };
 
 #endif // IMESSAGE_H

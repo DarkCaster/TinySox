@@ -85,12 +85,19 @@ bool JobDispatcher::RequestShutdown()
 
 bool JobDispatcher::ReadyForMessage(const MsgType msgType)
 {
+    if(msgType==MSG_NEW_CLIENT)
+        return true;
     return false;
 }
 
 void JobDispatcher::OnMessage(const IMessage& message)
 {
-
+    if(message.msgType==MSG_NEW_CLIENT)
+    {
+        auto fd=static_cast<const INewClientMessage&>(message).fd;
+        logger.Info()<<"TODO: Processing new client connection, fd=="<<fd;
+        return;
+    }
 }
 
 //receive new-connection notifications
