@@ -2,10 +2,11 @@
 #define STDIOLOGGERFACTORY_H
 
 #include "ILogger.h"
+#include "ILoggerFactory.h"
 #include <mutex>
 #include <atomic>
 
-class StdioLoggerFactory
+class StdioLoggerFactory final : public ILoggerFactory
 {
     private:
         std::atomic<unsigned int> maxNameWD;
@@ -13,8 +14,9 @@ class StdioLoggerFactory
         double creationTime;
     public:
         StdioLoggerFactory();
-        ILogger* CreateLogger(const std::string &name);
-        void DestroyLogger(ILogger* const target);
+        //ILoggerFactory
+        ILogger* CreateLogger(const std::string &name) final;
+        void DestroyLogger(ILogger* const target) final;
 };
 
 #endif // STDIOLOGGERFACTORY_H

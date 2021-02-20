@@ -12,6 +12,7 @@
 #include "MessageBroker.h"
 #include "ShutdownHandler.h"
 #include "JobDispatcher.h"
+#include "SimpleJobWorkerFactory.h"
 
 void usage(const std::string &self)
 {
@@ -91,6 +92,7 @@ int main (int argc, char *argv[])
 
     StdioLoggerFactory logFactory;
     auto mainLogger=logFactory.CreateLogger("Main");
+    auto dispLogger=logFactory.CreateLogger("Dispatcher");
 
     mainLogger->Info()<<"Starting up";
 
@@ -99,8 +101,9 @@ int main (int argc, char *argv[])
     ShutdownHandler shutdownHandler;
     messageBroker.AddSubscriber(shutdownHandler);
 
-    //create instances for main workers
-    JobDispatcher jobDispatcher(*mainLogger,messageBroker,workersCount);
+    //create instances for main logic
+    SimpleJobWorkerFactory jobWorkerFactory;
+    JobDispatcher jobDispatcher(*dispLogger,logFactory,jobWorkerFactory,messageBroker,workersCount);
     messageBroker.AddSubscriber(jobDispatcher);
 
     //create sigset_t struct with signals
@@ -148,6 +151,7 @@ int main (int argc, char *argv[])
     //wait for background workers shutdown complete
     jobDispatcher.Shutdown();
 
+    logFactory.DestroyLogger(dispLogger);
     logFactory.DestroyLogger(mainLogger);
 
     return  0;
