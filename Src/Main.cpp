@@ -5,6 +5,7 @@
 #include <csignal>
 #include <climits>
 #include <udns.h>
+#include <sys/time.h>
 
 #include "ILogger.h"
 #include "StdioLoggerFactory.h"
@@ -13,6 +14,7 @@
 #include "ShutdownHandler.h"
 #include "JobDispatcher.h"
 #include "SimpleJobWorkerFactory.h"
+#include "TCPServerListener.h"
 
 void usage(const std::string &self)
 {
@@ -33,6 +35,12 @@ int param_error(const std::string &self, const std::string &message)
 
 int main (int argc, char *argv[])
 {
+    //set timeouts used by background workers for network operations and some other events
+    //increasing this time will slow down reaction to some internal and external events
+    //decreasing this time too much will cause high cpu usage
+    const int timeoutMs=1000;
+    const timeval timeoutTv={timeoutMs/1000,(timeoutMs-timeoutMs/1000*1000)*1000};
+
     //timeout for main thread waiting for external signals
     const timespec sigTs={2,0};
 
@@ -93,6 +101,7 @@ int main (int argc, char *argv[])
     StdioLoggerFactory logFactory;
     auto mainLogger=logFactory.CreateLogger("Main");
     auto dispLogger=logFactory.CreateLogger("Dispatcher");
+    auto listenerLogger=logFactory.CreateLogger("Listener");
 
     mainLogger->Info()<<"Starting up";
 
@@ -106,6 +115,10 @@ int main (int argc, char *argv[])
     JobDispatcher jobDispatcher(*dispLogger,logFactory,jobWorkerFactory,messageBroker,workersCount);
     messageBroker.AddSubscriber(jobDispatcher);
 
+    std::vector<TCPServerListener*> serverListeners;
+    for(auto &addr:listenAddrs)
+        serverListeners.push_back(new TCPServerListener(*listenerLogger,messageBroker,timeoutTv,addr,port));
+
     //create sigset_t struct with signals
     sigset_t sigset;
     sigemptyset(&sigset);
@@ -117,6 +130,8 @@ int main (int argc, char *argv[])
 
     //start background workers, or perform post-setup init
     jobDispatcher.Startup();
+    for(auto &listener:serverListeners)
+        listener->Startup();
 
     //main loop
 
@@ -147,10 +162,18 @@ int main (int argc, char *argv[])
 
     //request shutdown of background workers
     jobDispatcher.RequestShutdown();
+    for(auto &listener:serverListeners)
+        listener->RequestShutdown();
 
     //wait for background workers shutdown complete
     jobDispatcher.Shutdown();
+    for(auto &listener:serverListeners)
+        listener->Shutdown();
 
+    for(auto &listener:serverListeners)
+        delete listener;
+
+    logFactory.DestroyLogger(listenerLogger);
     logFactory.DestroyLogger(dispLogger);
     logFactory.DestroyLogger(mainLogger);
 
