@@ -145,7 +145,7 @@ void JobDispatcher::Worker()
     //spin until no workers processing messages
     while(msgProcCount.load()>0){ }
 
-    logger.Info()<<"JobDispatcher worker was shutdown";
+    logger.Info()<<"Shuting down JobDispatcher worker thread";
 }
 
 void JobDispatcher::OnShutdown()
