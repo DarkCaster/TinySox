@@ -14,6 +14,7 @@
 #include "ShutdownHandler.h"
 #include "JobDispatcher.h"
 #include "SimpleJobWorkerFactory.h"
+#include "JobFactory.h"
 #include "TCPServerListener.h"
 
 void usage(const std::string &self)
@@ -23,7 +24,9 @@ void usage(const std::string &self)
     std::cerr<<"    -p <port-num> TCP port number to listen at."<<std::endl;
     std::cerr<<"  optional parameters:"<<std::endl;
     std::cerr<<"    -l <ip-addr> listen ip-address"<<std::endl;
-    std::cerr<<"    -w <count> workers count, 100 by default"<<std::endl;
+    std::cerr<<"    -wc <count> maximum workers count awailable for use immediately"<<std::endl;
+    std::cerr<<"    -ws <count> workers to spawn per round"<<std::endl;
+    std::cerr<<"    -wt <time, ms> workers management interval"<<std::endl;
 }
 
 int param_error(const std::string &self, const std::string &message)
@@ -89,13 +92,31 @@ int main (int argc, char *argv[])
     std::vector<IPAddress> listenAddrs;
     listenAddrs.push_back(listenAddrIsSet?IPAddress(args["-l"]):IPAddress());
 
-    ushort workersCount=100;
-    if(args.find("-w")!=args.end())
+    int workersCount=10;
+    if(args.find("-wc")!=args.end())
     {
-        int cnt=std::atoi(args["-w"].c_str());
-        if(cnt<1 || cnt>USHRT_MAX)
+        int cnt=std::atoi(args["-wc"].c_str());
+        if(cnt<1 || cnt>1000)
             return param_error(argv[0],"workers count value is invalid!");
-        workersCount=static_cast<ushort>(cnt);
+        workersCount=cnt;
+    }
+
+    int workersSpawn=2;
+    if(args.find("-ws")!=args.end())
+    {
+        int cnt=std::atoi(args["-wc"].c_str());
+        if(cnt<1 || cnt>workersCount)
+            return param_error(argv[0],"workers swawn count value is invalid!");
+        workersSpawn=cnt;
+    }
+
+    int workersMgmInterval=timeoutMs;
+    if(args.find("-wt")!=args.end())
+    {
+        int cnt=std::atoi(args["-wt"].c_str());
+        if(cnt<100 || cnt>10000)
+            return param_error(argv[0],"workers management interval is invalid!");
+        workersMgmInterval=cnt;
     }
 
     StdioLoggerFactory logFactory;
@@ -112,7 +133,8 @@ int main (int argc, char *argv[])
 
     //create instances for main logic
     SimpleJobWorkerFactory jobWorkerFactory;
-    JobDispatcher jobDispatcher(*dispLogger,logFactory,jobWorkerFactory,messageBroker,workersCount);
+    JobFactory jobFactory;
+    JobDispatcher jobDispatcher(*dispLogger,logFactory,jobWorkerFactory,jobFactory,messageBroker,workersCount,workersSpawn,workersMgmInterval);
     messageBroker.AddSubscriber(jobDispatcher);
 
     std::vector<TCPServerListener*> serverListeners;
