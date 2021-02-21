@@ -50,6 +50,7 @@ bool JobDispatcher::_SpawnWorkers(int count)
     return true;
 }
 
+
 void JobDispatcher::_DestroyWorkerInstance(JobDispatcher::WorkerInstance &instance)
 {
     //ensure we are fully shutdown
@@ -58,6 +59,20 @@ void JobDispatcher::_DestroyWorkerInstance(JobDispatcher::WorkerInstance &instan
     jobFactory.DestroyJob(instance.job);
     loggerFactory.DestroyLogger(instance.logger);
     workerFactory.DestroyWorker(instance.worker);
+}
+
+JobDispatcher::WorkerInstance JobDispatcher::_GetWorker()
+{
+    if(freeWorkers.size()<1)
+    {
+        if(!_SpawnWorkers(1))
+            HandleError(errno,"Failed to spawn new worker!");
+        return WorkerInstance{nullptr,nullptr,nullptr};
+    }
+    WorkerInstance result;
+    result=freeWorkers.front();
+    freeWorkers.pop_front();
+    return result;
 }
 
 void JobDispatcher::Worker()
@@ -176,6 +191,12 @@ void JobDispatcher::OnMessageInternal(const void* const source, const IMessage& 
     {
         auto fd=static_cast<const INewClientMessage&>(message).fd;
         logger.Info()<<"TODO: Processing new client connection, fd=="<<fd;
+        //TODO: example, add real code
+        std::lock_guard<std::mutex> flock(freeLock);
+        auto instance=_GetWorker();
+        instance.worker->SetJob(nullptr); //adding nullptr will make worker finished it's job without even providing result
+        std::lock_guard<std::mutex> dlock(disposeLock);
+        finishedWorkers.push_back(instance);
         return;
     }
 }
