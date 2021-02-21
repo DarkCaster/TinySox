@@ -24,7 +24,7 @@ bool ShutdownHandler::ReadyForMessage(const MsgType msgType)
     return msgType==MSG_SHUTDOWN;
 }
 
-void ShutdownHandler::OnMessage(const IMessage& message)
+void ShutdownHandler::OnMessage(const void* const, const IMessage& message)
 {
     if(!shutdownRequested.exchange(true))
     {

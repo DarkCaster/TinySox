@@ -28,7 +28,7 @@ class JobDispatcher final: public IMessageSubscriber, public WorkerBase
         IJobFactory &jobFactory;
         IMessageSender &sender;
         const unsigned int workersLimit;
-        const unsigned int workersSpawn;
+        const unsigned int workersSpawnLimit;
         const int mgmInerval;
 
         std::atomic<bool> shutdownPending;
@@ -47,20 +47,20 @@ class JobDispatcher final: public IMessageSubscriber, public WorkerBase
 
         void HandleError(int ec, const std::string& message);
         void HandleError(const std::string &message);
-        void OnMessageInternal(const IMessage &message);
+        void OnMessageInternal(const void* const source, const IMessage &message);
 
         //non interlocked private methods, may need to be locked outside
         bool _SpawnWorkers(int count);
         void _DestroyWorkerInstance(WorkerInstance &instance);
     public:
         JobDispatcher(ILogger &dispatcherLogger, ILoggerFactory &workerLoggerFactory, IJobWorkerFactory &workerFactory, IJobFactory &jobFactory, IMessageSender &sender,
-                      const int workersLimit, const int workersSpawn, const int mgmInt);
+                      const int workersLimit, const int workersSpawnLimit, const int mgmInt);
         //methods from WorkerBase
         void Worker() final;
         void OnShutdown() final;
         //methods for ISubscriber
         bool ReadyForMessage(const MsgType msgType) final;
-        void OnMessage(const IMessage &message) final;
+        void OnMessage(const void* const source, const IMessage &message) final;
 };
 
 #endif //JOBDISPATCHER_H

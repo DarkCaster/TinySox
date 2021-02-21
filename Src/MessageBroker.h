@@ -17,7 +17,7 @@ class MessageBroker : public IMessageSender
         std::map<std::thread::id,std::set<const void*>*> callers;
     public:
         void AddSubscriber(IMessageSubscriber& subscriber);
-        void SendMessage(const void * const sender, const IMessage &message) final;
+        void SendMessage(const void* const source, const IMessage &message) final;
 };
 
 #endif // MESSAGEBROKER_H

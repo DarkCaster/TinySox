@@ -8,14 +8,14 @@
 class ShutdownMessage: public IShutdownMessage { public: ShutdownMessage(int _ec):IShutdownMessage(_ec){} };
 
 JobDispatcher::JobDispatcher(ILogger &dispatcherLogger, ILoggerFactory &workerLoggerFactory, IJobWorkerFactory &_workerFactory, IJobFactory &_jobFactory, IMessageSender &_sender,
-                             const int _workersLimit, const int _workersSpawn, const int _mgmInt):
+                             const int _workersLimit, const int _workersSpawnLimit, const int _mgmInt):
     logger(dispatcherLogger),
     loggerFactory(workerLoggerFactory),
     workerFactory(_workerFactory),
     jobFactory(_jobFactory),
     sender(_sender),
     workersLimit(_workersLimit),
-    workersSpawn(_workersSpawn),
+    workersSpawnLimit(_workersSpawnLimit),
     mgmInerval(_mgmInt)
 {
     shutdownPending.store(false);
@@ -90,7 +90,7 @@ void JobDispatcher::Worker()
             if(freeWorkers.size()<workersLimit)
             {
                 auto spawnCount=workersLimit-freeWorkers.size();
-                spawnCount=spawnCount>workersSpawn?workersSpawn:spawnCount;
+                spawnCount=spawnCount>workersSpawnLimit?workersSpawnLimit:spawnCount;
                 if(!_SpawnWorkers(static_cast<int>(spawnCount)))
                 {
                     HandleError(errno,"Worker startup failed (bg management thread): ");
@@ -160,14 +160,14 @@ bool JobDispatcher::ReadyForMessage(const MsgType msgType)
     return false;
 }
 
-void JobDispatcher::OnMessage(const IMessage& message)
+void JobDispatcher::OnMessage(const void* const source, const IMessage& message)
 {
     msgProcCount.fetch_add(1);
-    OnMessageInternal(message);
+    OnMessageInternal(source,message);
     msgProcCount.fetch_sub(1);
 }
 
-void JobDispatcher::OnMessageInternal(const IMessage& message)
+void JobDispatcher::OnMessageInternal(const void* const source, const IMessage& message)
 {
     if(message.msgType==MSG_NEW_CLIENT)
     {

@@ -6,7 +6,7 @@
 class IMessageSender
 {
     public:
-        virtual void SendMessage(const void * const sender, const IMessage &message) = 0;
+        virtual void SendMessage(const void * const source, const IMessage &message) = 0;
 };
 
 #endif // IMESSAGESENDER_H

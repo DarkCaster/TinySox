@@ -101,13 +101,13 @@ int main (int argc, char *argv[])
         workersCount=cnt;
     }
 
-    int workersSpawn=2;
+    int workersSpawnLimit=2;
     if(args.find("-ws")!=args.end())
     {
         int cnt=std::atoi(args["-wc"].c_str());
         if(cnt<1 || cnt>workersCount)
             return param_error(argv[0],"workers swawn count value is invalid!");
-        workersSpawn=cnt;
+        workersSpawnLimit=cnt;
     }
 
     int workersMgmInterval=timeoutMs;
@@ -134,7 +134,7 @@ int main (int argc, char *argv[])
     //create instances for main logic
     SimpleJobWorkerFactory jobWorkerFactory;
     JobFactory jobFactory;
-    JobDispatcher jobDispatcher(*dispLogger,logFactory,jobWorkerFactory,jobFactory,messageBroker,workersCount,workersSpawn,workersMgmInterval);
+    JobDispatcher jobDispatcher(*dispLogger,logFactory,jobWorkerFactory,jobFactory,messageBroker,workersCount,workersSpawnLimit,workersMgmInterval);
     messageBroker.AddSubscriber(jobDispatcher);
 
     std::vector<TCPServerListener*> serverListeners;
