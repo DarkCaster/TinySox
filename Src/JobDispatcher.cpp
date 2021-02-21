@@ -37,7 +37,7 @@ bool JobDispatcher::_SpawnWorkers(int count)
             HandleError(errno,"Worker startup failed: ");
             return false;
         }
-        workerPool.push_back(WorkerInstance{worker,workerLogger});
+        workerPool.push_back(WorkerInstance{worker,workerLogger,nullptr});
     }
     return true;
 }
@@ -85,7 +85,7 @@ bool JobDispatcher::RequestShutdown()
 
 bool JobDispatcher::ReadyForMessage(const MsgType msgType)
 {
-    if(msgType==MSG_NEW_CLIENT)
+    if(msgType==MSG_JOB_COMPLETE || msgType==MSG_NEW_CLIENT)
         return true;
     return false;
 }

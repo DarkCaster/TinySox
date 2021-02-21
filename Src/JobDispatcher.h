@@ -1,6 +1,7 @@
 #ifndef JOBDISPATCHER_H
 #define JOBDISPATCHER_H
 
+#include "IJob.h"
 #include "ILogger.h"
 #include "ILoggerFactory.h"
 #include "IPAddress.h"
@@ -25,7 +26,7 @@ class JobDispatcher final: public IMessageSubscriber
         const ushort workersLimit;
         std::atomic<bool> shutdownPending;
 
-        struct WorkerInstance { IJobWorker* worker; ILogger* logger; };
+        struct WorkerInstance { IJobWorker* worker; ILogger* logger; IJob* job; };
         unsigned long workerID;
         std::deque<WorkerInstance> workerPool;
         std::mutex managementLock;
