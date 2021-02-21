@@ -1,5 +1,5 @@
-#include "SimpleJobWorkerFactory.h"
-#include "SimpleJobWorker.h"
+#include "JobWorkerFactory.h"
+#include "JobWorker.h"
 
 IJobWorker* SimpleJobWorkerFactory::CreateWorker(ILogger &logger, IMessageSender &sender)
 {

@@ -1,4 +1,4 @@
-#include "SimpleJobWorker.h"
+#include "JobWorker.h"
 
 SimpleJobWorker::SimpleJobWorker(ILogger &_logger, IMessageSender &_sender):
     IJobWorker(_sender),

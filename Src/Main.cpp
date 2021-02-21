@@ -13,7 +13,7 @@
 #include "MessageBroker.h"
 #include "ShutdownHandler.h"
 #include "JobDispatcher.h"
-#include "SimpleJobWorkerFactory.h"
+#include "JobWorkerFactory.h"
 #include "JobFactory.h"
 #include "TCPServerListener.h"
 
