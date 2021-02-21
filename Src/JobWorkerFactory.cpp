@@ -3,12 +3,12 @@
 
 IJobWorker* SimpleJobWorkerFactory::CreateWorker(ILogger &logger, IMessageSender &sender)
 {
-    return new SimpleJobWorker(logger,sender);
+    return new JobWorker(logger,sender);
 }
 
 void SimpleJobWorkerFactory::DestroyWorker(IJobWorker* const target)
 {
-    if(target==nullptr||dynamic_cast<SimpleJobWorker*>(target)==nullptr)
+    if(target==nullptr||dynamic_cast<JobWorker*>(target)==nullptr)
         return;
-    delete dynamic_cast<SimpleJobWorker*>(target);
+    delete dynamic_cast<JobWorker*>(target);
 }

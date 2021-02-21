@@ -1,22 +1,22 @@
 #include "JobWorker.h"
 
-SimpleJobWorker::SimpleJobWorker(ILogger &_logger, IMessageSender &_sender):
+JobWorker::JobWorker(ILogger &_logger, IMessageSender &_sender):
     IJobWorker(_sender),
     logger(_logger)
 {
 }
 
-bool SimpleJobWorker::SetJob(IJob* job)
+bool JobWorker::SetJob(IJob* job)
 {
     return false;
 }
 
-void SimpleJobWorker::Worker()
+void JobWorker::Worker()
 {
     //TODO:
 }
 
-void SimpleJobWorker::OnShutdown()
+void JobWorker::OnShutdown()
 {
     //TODO:
 }

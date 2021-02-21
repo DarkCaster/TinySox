@@ -1,16 +1,16 @@
-#ifndef SIMPLE_JOB_WORKER_H
-#define SIMPLE_JOB_WORKER_H
+#ifndef JOB_WORKER_H
+#define JOB_WORKER_H
 
 #include "IMessageSender.h"
 #include "IJobWorker.h"
 #include "ILogger.h"
 
-class SimpleJobWorker final : public IJobWorker
+class JobWorker final : public IJobWorker
 {
     private:
         ILogger &logger;
     public:
-        SimpleJobWorker(ILogger &logger, IMessageSender &sender);
+        JobWorker(ILogger &logger, IMessageSender &sender);
     protected:
         //IJobWorker
         bool SetJob(IJob *job) final;
@@ -19,5 +19,5 @@ class SimpleJobWorker final : public IJobWorker
         void OnShutdown() final;
 };
 
-#endif //SIMPLE_JOB_WORKER_H
+#endif //JOB_WORKER_H
 

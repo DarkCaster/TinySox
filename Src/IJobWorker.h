@@ -14,4 +14,4 @@ class IJobWorker : public WorkerBase
         virtual bool SetJob(IJob *job) = 0;
 };
 
-#endif //JOB_WORKER_H
+#endif //IJOB_WORKER_H
