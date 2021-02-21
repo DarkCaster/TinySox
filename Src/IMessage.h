@@ -38,7 +38,7 @@ class INewClientMessage : public IMessage
 class IJobCompleteMessage : public IMessage
 {
     protected:
-        IJobCompleteMessage(IJobResult &_result):IMessage(MSG_JOB_COMPLETE),result(_result){}
+        IJobCompleteMessage(const IJobResult &_result):IMessage(MSG_JOB_COMPLETE),result(_result){}
     public:
         const IJobResult &result;
 };

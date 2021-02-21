@@ -113,7 +113,10 @@ void JobDispatcher::Worker()
     {
         const std::lock_guard<std::mutex> lock(freeLock);
         for(auto &instance:freeWorkers)
+        {
+            instance.worker->SetJob(nullptr);
             instance.worker->RequestShutdown();
+        }
         for(auto &instance:freeWorkers)
             _DestroyWorkerInstance(instance);
         freeWorkers.clear();

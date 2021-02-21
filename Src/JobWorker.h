@@ -5,10 +5,17 @@
 #include "IJobWorker.h"
 #include "ILogger.h"
 
+#include <mutex>
+#include <condition_variable>
+
 class JobWorker final : public IJobWorker
 {
     private:
         ILogger &logger;
+        std::condition_variable jobTrigger;
+        std::mutex jobLock;
+        IJob *job;
+        bool jobSet;
     public:
         JobWorker(ILogger &logger, IMessageSender &sender);
     protected:
