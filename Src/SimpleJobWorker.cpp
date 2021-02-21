@@ -1,8 +1,14 @@
 #include "SimpleJobWorker.h"
 
-SimpleJobWorker::SimpleJobWorker(ILogger &_logger):
+SimpleJobWorker::SimpleJobWorker(ILogger &_logger, IMessageSender &_sender):
+    IJobWorker(_sender),
     logger(_logger)
 {
+}
+
+bool SimpleJobWorker::SetJob(IJob* job)
+{
+    return false;
 }
 
 void SimpleJobWorker::Worker()

@@ -6,7 +6,7 @@
 class SimpleJobWorkerFactory final : public IJobWorkerFactory
 {
     public:
-        IJobWorker* CreateWorker(ILogger &logger) final;
+        IJobWorker* CreateWorker(ILogger &logger, IMessageSender &sender) final;
         void DestroyWorker(IJobWorker* const target) final;
 };
 

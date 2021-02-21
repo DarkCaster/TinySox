@@ -2,11 +2,13 @@
 #define IMESSAGE_H
 
 #include <vector>
+#include "IJobResult.h"
 
 enum MsgType
 {
     MSG_SHUTDOWN,
     MSG_NEW_CLIENT,
+    MSG_JOB_COMPLETE,
 };
 
 class IMessage
@@ -31,6 +33,14 @@ class INewClientMessage : public IMessage
         INewClientMessage(int _fd):IMessage(MSG_NEW_CLIENT),fd(_fd){}
     public:
         const int fd;
+};
+
+class IJobCompleteMessage : public IMessage
+{
+    protected:
+        IJobCompleteMessage(IJobResult &_result):IMessage(MSG_JOB_COMPLETE),result(_result){}
+    public:
+        const IJobResult &result;
 };
 
 #endif // IMESSAGE_H

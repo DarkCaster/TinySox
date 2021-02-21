@@ -31,7 +31,7 @@ bool JobDispatcher::_SpawnWorkers(int count)
         std::ostringstream swName;
         swName << "Worker#" << workerID++;
         auto workerLogger=loggerFactory.CreateLogger(swName.str());
-        auto worker=workerFactory.CreateWorker(*workerLogger);
+        auto worker=workerFactory.CreateWorker(*workerLogger,sender);
         if(!worker->Startup())
         {
             HandleError(errno,"Worker startup failed: ");

@@ -1,9 +1,9 @@
 #include "SimpleJobWorkerFactory.h"
 #include "SimpleJobWorker.h"
 
-IJobWorker* SimpleJobWorkerFactory::CreateWorker(ILogger& logger)
+IJobWorker* SimpleJobWorkerFactory::CreateWorker(ILogger &logger, IMessageSender &sender)
 {
-    return new SimpleJobWorker(logger);
+    return new SimpleJobWorker(logger,sender);
 }
 
 void SimpleJobWorkerFactory::DestroyWorker(IJobWorker* const target)
