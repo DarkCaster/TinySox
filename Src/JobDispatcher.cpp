@@ -90,12 +90,13 @@ void JobDispatcher::Worker()
             if(freeWorkers.size()<workersLimit)
             {
                 auto spawnCount=workersLimit-freeWorkers.size();
-                if(!_SpawnWorkers(static_cast<int>(spawnCount>workersSpawn?workersSpawn:spawnCount)))
+                spawnCount=spawnCount>workersSpawn?workersSpawn:spawnCount;
+                if(!_SpawnWorkers(static_cast<int>(spawnCount)))
                 {
                     HandleError(errno,"Worker startup failed (bg management thread): ");
                     return;
                 }
-                logger.Info()<<tmp.size()<<" new workers spawned";
+                logger.Info()<<spawnCount<<" new workers spawned, total size: "<<freeWorkers.size();
             }
         }
 
@@ -104,7 +105,7 @@ void JobDispatcher::Worker()
     }
 
     //spin until no workers processing messages
-    while(msgProcCount.load()<1){ }
+    while(msgProcCount.load()>0){ }
 
     //any worker that start processing message at this moment should be aware of shutdownPending value, so it will not spawn any new workers
 
@@ -142,7 +143,7 @@ void JobDispatcher::Worker()
     }
 
     //spin until no workers processing messages
-    while(msgProcCount.load()<1){ }
+    while(msgProcCount.load()>0){ }
 
     logger.Info()<<"JobDispatcher worker was shutdown";
 }
