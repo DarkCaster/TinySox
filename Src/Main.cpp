@@ -183,17 +183,16 @@ int main (int argc, char *argv[])
     }
 
     //request shutdown of background workers
-    jobDispatcher.RequestShutdown();
-    for(auto &listener:serverListeners)
+    for(auto &listener:serverListeners) //server TCP listeners will be shutdown first
         listener->RequestShutdown();
+    jobDispatcher.RequestShutdown();
 
     //wait for background workers shutdown complete
-    jobDispatcher.Shutdown();
     for(auto &listener:serverListeners)
         listener->Shutdown();
-
     for(auto &listener:serverListeners)
         delete listener;
+    jobDispatcher.Shutdown();
 
     logFactory.DestroyLogger(listenerLogger);
     logFactory.DestroyLogger(dispLogger);
