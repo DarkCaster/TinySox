@@ -92,7 +92,7 @@ int main (int argc, char *argv[])
     std::vector<IPAddress> listenAddrs;
     listenAddrs.push_back(listenAddrIsSet?IPAddress(args["-l"]):IPAddress());
 
-    int workersCount=10;
+    int workersCount=50;
     if(args.find("-wc")!=args.end())
     {
         int cnt=std::atoi(args["-wc"].c_str());
@@ -101,7 +101,7 @@ int main (int argc, char *argv[])
         workersCount=cnt;
     }
 
-    int workersSpawnLimit=2;
+    int workersSpawnLimit=10;
     if(args.find("-ws")!=args.end())
     {
         int cnt=std::atoi(args["-wc"].c_str());
