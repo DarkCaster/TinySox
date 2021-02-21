@@ -132,7 +132,7 @@ int main (int argc, char *argv[])
     messageBroker.AddSubscriber(shutdownHandler);
 
     //create instances for main logic
-    SimpleJobWorkerFactory jobWorkerFactory;
+    JobWorkerFactory jobWorkerFactory;
     JobFactory jobFactory;
     JobDispatcher jobDispatcher(*dispLogger,logFactory,jobWorkerFactory,jobFactory,messageBroker,workersCount,workersSpawnLimit,workersMgmInterval);
     messageBroker.AddSubscriber(jobDispatcher);
