@@ -41,7 +41,7 @@ int main (int argc, char *argv[])
     //set timeouts used by background workers for network operations and some other events
     //increasing this time will slow down reaction to some internal and external events
     //decreasing this time too much will cause high cpu usage
-    const int timeoutMs=1000;
+    const int timeoutMs=500;
     const timeval timeoutTv={timeoutMs/1000,(timeoutMs-timeoutMs/1000*1000)*1000};
 
     //timeout for main thread waiting for external signals

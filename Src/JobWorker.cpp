@@ -35,7 +35,7 @@ void JobWorker::Worker()
     if(curJob==nullptr)
         return;
     //execute job and provide result
-    sender.SendMessage(this, JobCompleteMessage(curJob->Execute()));
+    sender.SendMessage(this, JobCompleteMessage(curJob->Execute(logger)));
 }
 
 void JobWorker::OnShutdown()
@@ -44,6 +44,6 @@ void JobWorker::OnShutdown()
     if(jobSet && job!=nullptr)
     {
         logger.Info()<<"Cancelling active job";
-        job->Cancel();
+        job->Cancel(logger);
     }
 }

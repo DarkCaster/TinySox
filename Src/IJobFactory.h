@@ -2,12 +2,16 @@
 #define IJOB_FACTORY_H
 
 #include "IJob.h"
+#include "IJobResult.h"
+#include "ILogger.h"
+
+#include <vector>
 
 class IJobFactory
 {
     public:
         virtual void DestroyJob(IJob* const target) = 0;
-        //TODO: methods for creating job-tasks for various socks-protocol activities
+        virtual std::vector<IJob*> CreateJobsFromResult(const IJobResult &source) = 0;
 };
 
 #endif //IJOB_FACTORY_H

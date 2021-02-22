@@ -12,3 +12,12 @@ void JobFactory::DestroyJob(IJob* const target)
     /*dynamic_cast<REAL_JOB_TYPE*>(target)==nullptr)
     delete dynamic_cast<REAL_JOB_TYPE*>(target);*/
 }
+
+std::vector<IJob*> JobFactory::CreateJobsFromResult(const IJobResult &source)
+{
+    //JR_TERMINAL result means that no new jobs needs to be created
+    if(source.resultType==JR_TERMINAL)
+        return std::vector<IJob*>();
+    //TODO: create job instances based on result from previous job
+    return std::vector<IJob*>();
+}

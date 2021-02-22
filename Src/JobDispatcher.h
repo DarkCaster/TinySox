@@ -37,7 +37,7 @@ class JobDispatcher final: public IMessageSubscriber, public WorkerBase
         unsigned long workerID;
 
         std::deque<WorkerInstance> freeWorkers;
-        std::unordered_map<IJobWorker*,WorkerInstance> activeWorkers;
+        std::unordered_map<const void*,WorkerInstance> activeWorkers;
         std::deque<WorkerInstance> finishedWorkers;
 
         std::mutex freeLock;
@@ -51,7 +51,7 @@ class JobDispatcher final: public IMessageSubscriber, public WorkerBase
         //non interlocked private methods, may need to be locked outside
         bool _SpawnWorkers(int count);
         void _DestroyWorkerInstance(WorkerInstance &instance);
-        WorkerInstance _GetWorker();
+        WorkerInstance _CreateWorkerInstance(IJob *job);
     public:
         JobDispatcher(ILogger &dispatcherLogger, ILoggerFactory &workerLoggerFactory, IJobWorkerFactory &workerFactory, IJobFactory &jobFactory, IMessageSender &sender,
                       const int workersLimit, const int workersSpawnLimit, const int mgmInt);

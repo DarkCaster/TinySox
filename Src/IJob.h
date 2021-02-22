@@ -2,12 +2,13 @@
 #define IJOB_H
 
 #include "IJobResult.h"
+#include "ILogger.h"
 
 class IJob
 {
     public:
-        virtual IJobResult Execute() = 0;
-        virtual void Cancel() = 0;
+        virtual IJobResult Execute(ILogger &logger) = 0;
+        virtual void Cancel(ILogger &logger) = 0;
 };
 
 #endif

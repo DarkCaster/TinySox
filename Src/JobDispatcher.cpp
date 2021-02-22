@@ -61,7 +61,7 @@ void JobDispatcher::_DestroyWorkerInstance(JobDispatcher::WorkerInstance &instan
     workerFactory.DestroyWorker(instance.worker);
 }
 
-JobDispatcher::WorkerInstance JobDispatcher::_GetWorker()
+JobDispatcher::WorkerInstance JobDispatcher::_CreateWorkerInstance(IJob *job)
 {
     if(freeWorkers.size()<1)
     {
@@ -69,9 +69,9 @@ JobDispatcher::WorkerInstance JobDispatcher::_GetWorker()
             HandleError(errno,"Failed to spawn new worker!");
         return WorkerInstance{nullptr,nullptr,nullptr};
     }
-    WorkerInstance result;
-    result=freeWorkers.front();
+    auto result=freeWorkers.front();
     freeWorkers.pop_front();
+    result.job=job;
     return result;
 }
 
@@ -173,7 +173,7 @@ void JobDispatcher::OnShutdown()
 
 bool JobDispatcher::ReadyForMessage(const MsgType msgType)
 {
-    if(msgType==MSG_JOB_COMPLETE || msgType==MSG_NEW_CLIENT)
+    if(msgType==MSG_JOB_COMPLETE)
         return true;
     return false;
 }
@@ -187,25 +187,33 @@ void JobDispatcher::OnMessage(const void* const source, const IMessage& message)
 
 void JobDispatcher::OnMessageInternal(const void* const source, const IMessage& message)
 {
-    if(message.msgType==MSG_NEW_CLIENT)
+    auto jobResult=static_cast<const IJobCompleteMessage&>(message).result;
+
+    //try to find active worker for this message and move it to finishedWorkers
     {
-        auto fd=static_cast<const INewClientMessage&>(message).fd;
-        logger.Info()<<"TODO: Processing new client connection, fd=="<<fd;
-        //TODO: example, add real code
-        std::lock_guard<std::mutex> flock(freeLock);
-        auto instance=_GetWorker();
-        instance.worker->SetJob(nullptr); //adding nullptr will make worker finished it's job without even providing result
-        std::lock_guard<std::mutex> dlock(disposeLock);
-        finishedWorkers.push_back(instance);
-        return;
+        std::lock_guard<std::mutex> activeGuard(activeLock);
+        auto search = activeWorkers.find(source);
+        if(search!=activeWorkers.end())
+        {
+            std::lock_guard<std::mutex> disposeGuard(disposeLock);
+            finishedWorkers.push_back(search->second);
+            activeWorkers.erase(search);
+        }
+    }
+
+    //create new jobs based on previous jobResult and assign every job to new worker
+    for(auto job:jobFactory.CreateJobsFromResult(jobResult))
+    {
+        //logger.Info()<<"Preparing worker for new job";
+        //get free worker or create a new one + all helper stuff
+        std::lock_guard<std::mutex> freeGuard(freeLock);
+        auto newInstance=_CreateWorkerInstance(job);
+        if(newInstance.worker==nullptr)
+            return; //error creating new worker
+        //move worker instance to the activeWorkers
+        std::lock_guard<std::mutex> activeGuard(activeLock);
+        activeWorkers.insert({newInstance.worker,newInstance});
+        //assign new job and start it's execution (at worker's thread)
+        newInstance.worker->SetJob(newInstance.job);
     }
 }
-
-
-
-
-//receive new-connection notifications
-
-//receive workers notifications
-
-//dispose workers that have finished it's job and prepare new ones for the worker-pool

@@ -1,4 +1,5 @@
 #include "TCPServerListener.h"
+#include "IJobResult.h"
 
 #include <cstring>
 #include <cerrno>
@@ -9,7 +10,8 @@
 #include <unistd.h>
 
 class ShutdownMessage: public IShutdownMessage { public: ShutdownMessage(int _ec):IShutdownMessage(_ec){} };
-class NewClientMessage: public INewClientMessage { public: NewClientMessage(int _fd):INewClientMessage(_fd){} };
+class JobCompleteMessage: public IJobCompleteMessage { public: JobCompleteMessage(const IJobResult &_result):IJobCompleteMessage(_result){} };
+class NewClientJobResult: public INewClientJobResult { public: NewClientJobResult(const int fd):INewClientJobResult(fd){} };
 
 TCPServerListener::TCPServerListener(ILogger &_logger, IMessageSender &_sender, const timeval _timeout, const IPAddress _listenAddr, const int _port):
     logger(_logger),
@@ -149,7 +151,7 @@ void TCPServerListener::Worker()
         logger.Info()<<"Client connected"<<std::endl;
 
         //pass client socket FD to the external logic
-        sender.SendMessage(this,NewClientMessage(cSockFd));
+        sender.SendMessage(this,JobCompleteMessage(NewClientJobResult(cSockFd)));
     }
 
     if(close(lSockFd)!=0)

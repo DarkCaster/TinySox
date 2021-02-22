@@ -3,18 +3,40 @@
 
 enum JobResultType
 {
-    JR_CLIENT_HANDSHAKE_FAILED,
-    JR_CLIENT_CONNECT_MODE,
-    //JR_CLIENT_BIND_MODE, //not supported currently
-    //JR_CLIENT_UDP_MODE, //not supported currently
+    JR_TERMINAL,
+    JR_NEW_CLIENT,
+    //JR_CLIENT_HANDSHAKE_FAILED,
+    //JR_CLIENT_MODE_CONNECT,
+    //JR_CLIENT_MODE_BIND, //not supported currently
+    //JR_CLIENT_MODE_UDP, //not supported currently
 };
 
 class IJobResult
 {
     protected:
-        IJobResult(const JobResultType _resultType):resultType(_resultType){};
+        IJobResult(const JobResultType _resultType):
+            resultType(_resultType){};
     public:
         const JobResultType resultType;
+};
+
+class IJobTerminalResult : public IJobResult
+{
+    protected:
+        IJobTerminalResult():
+            IJobResult(JR_TERMINAL)
+        {};
+};
+
+class INewClientJobResult : public IJobResult
+{
+    protected:
+        INewClientJobResult(const int _clientSocketFD):
+            IJobResult(JR_NEW_CLIENT),
+            clientSocketFD(_clientSocketFD)
+        {};
+    public:
+        const int clientSocketFD;
 };
 
 #endif
