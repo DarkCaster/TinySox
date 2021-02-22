@@ -1,5 +1,10 @@
 #include "JobFactory.h"
 
+JobFactory::JobFactory(const IConfig &_config):
+    config(_config)
+{
+}
+
 void JobFactory::DestroyJob(IJob* const target)
 {
     if(target==nullptr)
