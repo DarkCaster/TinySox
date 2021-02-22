@@ -7,16 +7,13 @@
 
 class ShutdownMessage: public IShutdownMessage { public: ShutdownMessage(int _ec):IShutdownMessage(_ec){} };
 
-JobDispatcher::JobDispatcher(ILogger &dispatcherLogger, ILoggerFactory &workerLoggerFactory, IJobWorkerFactory &_workerFactory, IJobFactory &_jobFactory, IMessageSender &_sender,
-                             const int _workersLimit, const int _workersSpawnLimit, const int _mgmInt):
+JobDispatcher::JobDispatcher(ILogger &dispatcherLogger, ILoggerFactory &workerLoggerFactory, IJobWorkerFactory &_workerFactory, IJobFactory &_jobFactory, IMessageSender &_sender, const IConfig &_config):
     logger(dispatcherLogger),
     loggerFactory(workerLoggerFactory),
     workerFactory(_workerFactory),
     jobFactory(_jobFactory),
     sender(_sender),
-    workersLimit(_workersLimit),
-    workersSpawnLimit(_workersSpawnLimit),
-    mgmInerval(_mgmInt)
+    config(_config)
 {
     shutdownPending.store(false);
     msgProcCount.store(0);
@@ -77,6 +74,9 @@ JobDispatcher::WorkerInstance JobDispatcher::_CreateWorkerInstance(IJob *job)
 void JobDispatcher::Worker()
 {
     std::deque<WorkerInstance> tmp;
+    uint workersLimit=config.GetWorkersCount();
+    uint workersSpawnLimit=config.GetWorkersSpawnCount();
+    int mgmInerval=config.GetServiceIntervalMS();
 
     //loop untill shutdown
     while(!shutdownPending.load())

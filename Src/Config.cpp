@@ -1,21 +1,61 @@
 #include "Config.h"
 
-void Config::AddUser(const std::string& login, const std::string& password, const int level)
+void Config::AddListenAddr(const IPEndpoint &endpoint)
 {
-    users[login]=std::tuple<std::string,int>(password,level);
+    listenAddrs.insert(endpoint);
 }
 
-void Config::AddListenAddr(const IPAddress &addr, const ushort port)
+void Config::SetSocketTimeoutMS(int timeoutMS)
 {
-    listenAddrs.push_back(std::tuple<IPAddress,ushort>(addr,port));
+    socketTimeout=timeoutMS;
 }
 
-std::vector<std::tuple<IPAddress,ushort>> Config::GetListenAddrs() const
+void Config::SetServiceIntervalMS(int intervalMS)
+{
+    serviceInterval=intervalMS;
+}
+
+void Config::SetWorkersCount(int count)
+{
+    workersCount=count;
+}
+
+void Config::SetWorkersSpawnCount(int count)
+{
+    workersSpawnCount=count;
+}
+
+int Config::GetSocketTimeoutMS() const
+{
+    return socketTimeout;
+}
+
+timeval Config::GetSocketTimeoutTV() const
+{
+    return timeval{socketTimeout/1000,(socketTimeout-socketTimeout/1000*1000)*1000};
+}
+
+int Config::GetServiceIntervalMS() const
+{
+    return serviceInterval;
+}
+
+timeval Config::GetServiceIntervalTV() const
+{
+    return timeval{serviceInterval/1000,(serviceInterval-serviceInterval/1000*1000)*1000};
+}
+
+int Config::GetWorkersCount() const
+{
+    return workersCount;
+}
+
+int Config::GetWorkersSpawnCount() const
+{
+    return workersSpawnCount;
+}
+
+std::unordered_set<IPEndpoint> Config::GetListenAddrs() const
 {
     return listenAddrs;
-}
-
-std::unordered_map<std::string,std::tuple<std::string,int>> Config::GetUsers() const
-{
-    return users;
 }

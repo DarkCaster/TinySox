@@ -13,12 +13,11 @@ class ShutdownMessage: public IShutdownMessage { public: ShutdownMessage(int _ec
 class JobCompleteMessage: public IJobCompleteMessage { public: JobCompleteMessage(const IJobResult &_result):IJobCompleteMessage(_result){} };
 class NewClientJobResult: public INewClientJobResult { public: NewClientJobResult(const int fd):INewClientJobResult(fd){} };
 
-TCPServerListener::TCPServerListener(ILogger &_logger, IMessageSender &_sender, const timeval _timeout, const IPAddress _listenAddr, const int _port):
+TCPServerListener::TCPServerListener(ILogger &_logger, IMessageSender &_sender, const IConfig &_config, const IPEndpoint &_listenAt):
     logger(_logger),
     sender(_sender),
-    timeout(_timeout),
-    listenAddr(_listenAddr),
-    port(_port)
+    config(_config),
+    endpoint(_listenAt)
 {
     shutdownPending.store(false);
 }
@@ -37,20 +36,14 @@ void TCPServerListener::HandleError(int ec, const std::string &message)
 
 void TCPServerListener::Worker()
 {
-    if(!listenAddr.isValid)
+    if(!endpoint.address.isValid)
     {
         HandleError("Listen IP address is invalid");
         return;
     }
 
-    if(port<1||port>65535)
-    {
-        HandleError("Port number is invalid");
-        return;
-    }
-
     //create listen socket
-    auto lSockFd=socket(listenAddr.isV6?AF_INET6:AF_INET,SOCK_STREAM,0);
+    auto lSockFd=socket(endpoint.address.isV6?AF_INET6:AF_INET,SOCK_STREAM,0);
     if(lSockFd==-1)
     {
         HandleError(errno,"Failed to create listen socket: ");
@@ -84,19 +77,19 @@ void TCPServerListener::Worker()
     sockaddr_in6 ipv6Addr = {};
     sockaddr *target;
     socklen_t len;
-    if(listenAddr.isV6)
+    if(endpoint.address.isV6)
     {
         ipv6Addr.sin6_family=AF_INET6;
-        ipv6Addr.sin6_port=htons(static_cast<uint16_t>(port));
-        listenAddr.ToSA(&ipv6Addr);
+        ipv6Addr.sin6_port=htons(static_cast<uint16_t>(endpoint.port));
+        endpoint.address.ToSA(&ipv6Addr);
         target=reinterpret_cast<sockaddr*>(&ipv6Addr);
         len=sizeof(sockaddr_in6);
     }
     else
     {
         ipv4Addr.sin_family=AF_INET;
-        ipv4Addr.sin_port=htons(static_cast<uint16_t>(port));
-        listenAddr.ToSA(&ipv4Addr);
+        ipv4Addr.sin_port=htons(static_cast<uint16_t>(endpoint.port));
+        endpoint.address.ToSA(&ipv4Addr);
         target=reinterpret_cast<sockaddr*>(&ipv4Addr);
         len=sizeof(sockaddr_in);
     }
@@ -121,7 +114,7 @@ void TCPServerListener::Worker()
         fd_set lSet;
         FD_ZERO(&lSet);
         FD_SET(lSockFd, &lSet);
-        auto lt = timeout;
+        auto lt = config.GetSocketTimeoutTV();
         auto lrv = select(lSockFd+1, &lSet, NULL, NULL, &lt);
         if(lrv==0) //no incoming connection detected
             continue;

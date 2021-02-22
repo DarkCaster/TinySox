@@ -40,12 +40,6 @@ int param_error(const std::string &self, const std::string &message)
 
 int main (int argc, char *argv[])
 {
-    //set timeouts used by background workers for network operations and some other events
-    //increasing this time will slow down reaction to some internal and external events
-    //decreasing this time too much will cause high cpu usage
-    const int timeoutMs=500;
-    const timeval timeoutTv={timeoutMs/1000,(timeoutMs-timeoutMs/1000*1000)*1000};
-
     //timeout for main thread waiting for external signals
     const timespec sigTs={2,0};
 
@@ -73,12 +67,14 @@ int main (int argc, char *argv[])
 
     Config config;
 
+    //timeouts used by background workers for network operations and some other events
+    //increasing this time will slow down reaction to some internal and external events
+    //decreasing this time too much will cause high cpu usage
+    config.SetSocketTimeoutMS(500);
+
     //parse port number
     if(args.find("-p")==args.end())
         return param_error(argv[0],"TCP port number is missing!");
-    //parse port
-    if(args["-p"].length()>5||args["-p"].length()<1)
-        return param_error(argv[0],"TCP port number is too long or invalid!");
     auto port=std::atoi(args["-p"].c_str());
     if(port<1||port>65535)
         return param_error(argv[0],"TCP port number is invalid!");
@@ -89,36 +85,36 @@ int main (int argc, char *argv[])
     {
         if(!IPAddress(args["-l"]).isValid||IPAddress(args["-l"]).isV6)
             return param_error(argv[0],"listen IP address is invalid!");
-        config.AddListenAddr(IPAddress(args["-l"]),static_cast<ushort>(port));
+        config.AddListenAddr(IPEndpoint(IPAddress(args["-l"]),static_cast<ushort>(port)));
     }
     else
-        config.AddListenAddr(IPAddress("127.0.0.1"),static_cast<ushort>(port)); //TODO: add any IP addr support 0.0.0.0
+        config.AddListenAddr(IPEndpoint(IPAddress("127.0.0.1"),static_cast<ushort>(port))); //TODO: add any IP addr support 0.0.0.0
 
-    int workersCount=50;
+    config.SetWorkersCount(50);
     if(args.find("-wc")!=args.end())
     {
         int cnt=std::atoi(args["-wc"].c_str());
         if(cnt<1 || cnt>1000)
             return param_error(argv[0],"workers count value is invalid!");
-        workersCount=cnt;
+        config.SetWorkersCount(cnt);
     }
 
-    int workersSpawnLimit=10;
+    config.SetWorkersSpawnCount(10);
     if(args.find("-ws")!=args.end())
     {
         int cnt=std::atoi(args["-wc"].c_str());
-        if(cnt<1 || cnt>workersCount)
+        if(cnt<1 || cnt>config.GetWorkersCount())
             return param_error(argv[0],"workers swawn count value is invalid!");
-        workersSpawnLimit=cnt;
+        config.SetWorkersSpawnCount(cnt);
     }
 
-    int workersMgmInterval=timeoutMs;
+    config.SetServiceIntervalMS(config.GetSocketTimeoutMS());
     if(args.find("-wt")!=args.end())
     {
         int cnt=std::atoi(args["-wt"].c_str());
         if(cnt<100 || cnt>10000)
             return param_error(argv[0],"workers management interval is invalid!");
-        workersMgmInterval=cnt;
+         config.SetServiceIntervalMS(cnt);
     }
 
     StdioLoggerFactory logFactory;
@@ -136,12 +132,12 @@ int main (int argc, char *argv[])
     //create instances for main logic
     JobWorkerFactory jobWorkerFactory;
     JobFactory jobFactory;
-    JobDispatcher jobDispatcher(*dispLogger,logFactory,jobWorkerFactory,jobFactory,messageBroker,workersCount,workersSpawnLimit,workersMgmInterval);
+    JobDispatcher jobDispatcher(*dispLogger,logFactory,jobWorkerFactory,jobFactory,messageBroker,config);
     messageBroker.AddSubscriber(jobDispatcher);
 
     std::vector<TCPServerListener*> serverListeners;
-    for(auto cfg:config.GetListenAddrs())
-        serverListeners.push_back(new TCPServerListener(*listenerLogger,messageBroker,timeoutTv,std::get<0>(cfg),std::get<1>(cfg)));
+    for(auto addr:config.GetListenAddrs())
+        serverListeners.push_back(new TCPServerListener(*listenerLogger,messageBroker,config,addr));
 
     //create sigset_t struct with signals
     sigset_t sigset;

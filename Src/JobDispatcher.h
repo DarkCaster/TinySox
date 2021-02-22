@@ -1,6 +1,7 @@
 #ifndef JOBDISPATCHER_H
 #define JOBDISPATCHER_H
 
+#include "IConfig.h"
 #include "IJob.h"
 #include "ILogger.h"
 #include "ILoggerFactory.h"
@@ -26,10 +27,8 @@ class JobDispatcher final: public IMessageSubscriber, public WorkerBase
         IJobWorkerFactory &workerFactory;
         IJobFactory &jobFactory;
         IMessageSender &sender;
-        const unsigned int workersLimit;
-        const unsigned int workersSpawnLimit;
-        const int mgmInerval;
 
+        const IConfig &config;
         std::atomic<bool> shutdownPending;
         std::atomic<int> msgProcCount;
 
@@ -53,8 +52,7 @@ class JobDispatcher final: public IMessageSubscriber, public WorkerBase
         void _DestroyWorkerInstance(WorkerInstance &instance);
         WorkerInstance _CreateWorkerInstance(IJob *job);
     public:
-        JobDispatcher(ILogger &dispatcherLogger, ILoggerFactory &workerLoggerFactory, IJobWorkerFactory &workerFactory, IJobFactory &jobFactory, IMessageSender &sender,
-                      const int workersLimit, const int workersSpawnLimit, const int mgmInt);
+        JobDispatcher(ILogger &dispatcherLogger, ILoggerFactory &workerLoggerFactory, IJobWorkerFactory &workerFactory, IJobFactory &jobFactory, IMessageSender &sender, const IConfig &config);
         //methods from WorkerBase
         void Worker() final;
         void OnShutdown() final;
