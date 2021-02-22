@@ -16,6 +16,8 @@
 #include "JobWorkerFactory.h"
 #include "JobFactory.h"
 #include "TCPServerListener.h"
+#include "Config.h"
+#include "tuple"
 
 void usage(const std::string &self)
 {
@@ -69,6 +71,8 @@ int main (int argc, char *argv[])
     if(args.empty())
         return param_error(argv[0],"Mandatory parameters are missing!");
 
+    Config config;
+
     //parse port number
     if(args.find("-p")==args.end())
         return param_error(argv[0],"TCP port number is missing!");
@@ -81,16 +85,14 @@ int main (int argc, char *argv[])
 
     //TODO: support for providing multiple ip-addresses
     //parse listen address
-    bool listenAddrIsSet=false;
     if(args.find("-l")!=args.end())
     {
         if(!IPAddress(args["-l"]).isValid||IPAddress(args["-l"]).isV6)
             return param_error(argv[0],"listen IP address is invalid!");
-        listenAddrIsSet=true;
+        config.AddListenAddr(IPAddress(args["-l"]),static_cast<ushort>(port));
     }
-
-    std::vector<IPAddress> listenAddrs;
-    listenAddrs.push_back(listenAddrIsSet?IPAddress(args["-l"]):IPAddress());
+    else
+        config.AddListenAddr(IPAddress("127.0.0.1"),static_cast<ushort>(port)); //TODO: add any IP addr support 0.0.0.0
 
     int workersCount=50;
     if(args.find("-wc")!=args.end())
@@ -138,8 +140,8 @@ int main (int argc, char *argv[])
     messageBroker.AddSubscriber(jobDispatcher);
 
     std::vector<TCPServerListener*> serverListeners;
-    for(auto &addr:listenAddrs)
-        serverListeners.push_back(new TCPServerListener(*listenerLogger,messageBroker,timeoutTv,addr,port));
+    for(auto cfg:config.GetListenAddrs())
+        serverListeners.push_back(new TCPServerListener(*listenerLogger,messageBroker,timeoutTv,std::get<0>(cfg),std::get<1>(cfg)));
 
     //create sigset_t struct with signals
     sigset_t sigset;
