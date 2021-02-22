@@ -46,7 +46,7 @@ class JobDispatcher final: public IMessageSubscriber, public WorkerBase
 
         void HandleError(int ec, const std::string& message);
         void HandleError(const std::string &message);
-        void OnMessageInternal(const void* const source, const IMessage &message);
+        void OnMessageInternal(const void* const source, const IJobCompleteMessage& message);
 
         //non interlocked private methods, may need to be locked outside
         bool _SpawnWorkers(int count);

@@ -50,15 +50,14 @@ bool JobDispatcher::_SpawnWorkers(int count)
     return true;
 }
 
-
 void JobDispatcher::_DestroyWorkerInstance(JobDispatcher::WorkerInstance &instance)
 {
-    //ensure we are fully shutdown
+    //ensure that worker is not executing anything
     instance.worker->Shutdown();
-    //destroy all dynamic instances
+    //destroy all dynamically allocated stuff
+    workerFactory.DestroyWorker(instance.worker);
     jobFactory.DestroyJob(instance.job);
     loggerFactory.DestroyLogger(instance.logger);
-    workerFactory.DestroyWorker(instance.worker);
 }
 
 JobDispatcher::WorkerInstance JobDispatcher::_CreateWorkerInstance(IJob *job)
@@ -173,23 +172,19 @@ void JobDispatcher::OnShutdown()
 
 bool JobDispatcher::ReadyForMessage(const MsgType msgType)
 {
-    if(msgType==MSG_JOB_COMPLETE)
-        return true;
-    return false;
+    return msgType==MSG_JOB_COMPLETE;
 }
 
 void JobDispatcher::OnMessage(const void* const source, const IMessage& message)
 {
     msgProcCount.fetch_add(1);
-    OnMessageInternal(source,message);
+    OnMessageInternal(source,static_cast<const IJobCompleteMessage&>(message));
     msgProcCount.fetch_sub(1);
 }
 
-void JobDispatcher::OnMessageInternal(const void* const source, const IMessage& message)
+void JobDispatcher::OnMessageInternal(const void* const source, const IJobCompleteMessage& message)
 {
-    auto jobResult=static_cast<const IJobCompleteMessage&>(message).result;
-
-    //try to find active worker for this message and move it to finishedWorkers
+    //try to find active worker that sent this message and move it to finishedWorkers to be disposed later
     {
         std::lock_guard<std::mutex> activeGuard(activeLock);
         auto search = activeWorkers.find(source);
@@ -201,8 +196,12 @@ void JobDispatcher::OnMessageInternal(const void* const source, const IMessage& 
         }
     }
 
+    //stop creating new jobs if we are currently shutting down
+    if(shutdownPending.load())
+        return;
+
     //create new jobs based on previous jobResult and assign every job to new worker
-    for(auto job:jobFactory.CreateJobsFromResult(jobResult))
+    for(auto job:jobFactory.CreateJobsFromResult(message.result))
     {
         //logger.Info()<<"Preparing worker for new job";
         //get free worker or create a new one + all helper stuff
