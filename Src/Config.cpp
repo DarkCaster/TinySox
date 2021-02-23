@@ -5,6 +5,11 @@ void Config::AddListenAddr(const IPEndpoint &endpoint)
     listenAddrs.insert(endpoint);
 }
 
+void Config::AddUser(const User& user)
+{
+    users.insert({user.login,user});
+}
+
 void Config::SetSocketTimeoutMS(int timeoutMS)
 {
     socketTimeout=timeoutMS;
@@ -53,6 +58,14 @@ int Config::GetWorkersCount() const
 int Config::GetWorkersSpawnCount() const
 {
     return workersSpawnCount;
+}
+
+const User * Config::GetUser(std::string& name) const
+{
+    auto search=users.find(name);
+    if(search==users.end())
+        return nullptr;
+    else return &(search->second);
 }
 
 std::unordered_set<IPEndpoint> Config::GetListenAddrs() const

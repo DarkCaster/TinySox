@@ -1,12 +1,3 @@
-#include <vector>
-#include <unordered_map>
-#include <string>
-#include <cstring>
-#include <csignal>
-#include <climits>
-#include <udns.h>
-#include <sys/time.h>
-
 #include "ILogger.h"
 #include "StdioLoggerFactory.h"
 #include "IPAddress.h"
@@ -16,8 +7,17 @@
 #include "JobWorkerFactory.h"
 #include "JobFactory.h"
 #include "TCPServerListener.h"
+#include "User.h"
 #include "Config.h"
-#include "tuple"
+
+#include <vector>
+#include <unordered_map>
+#include <string>
+#include <cstring>
+#include <csignal>
+#include <climits>
+#include <sys/time.h>
+#include <udns.h>
 
 void usage(const std::string &self)
 {
@@ -29,6 +29,8 @@ void usage(const std::string &self)
     std::cerr<<"    -wc <count> maximum workers count awailable for use immediately"<<std::endl;
     std::cerr<<"    -ws <count> workers to spawn per round"<<std::endl;
     std::cerr<<"    -wt <time, ms> workers management interval"<<std::endl;
+    std::cerr<<"    -usr <username> for non anonymous login"<<std::endl;
+    std::cerr<<"    -pwd <password> for provided username"<<std::endl;
 }
 
 int param_error(const std::string &self, const std::string &message)
@@ -116,6 +118,12 @@ int main (int argc, char *argv[])
             return param_error(argv[0],"workers management interval is invalid!");
          config.SetServiceIntervalMS(cnt);
     }
+
+    //TODO: support for multiple users
+    if(args.find("-usr")==args.end())
+        config.AddUser(User{"",""});
+    else
+        config.AddUser(User{args["-usr"],args.find("-pwd")==args.end()?"":args["-pwd"]});
 
     StdioLoggerFactory logFactory;
     auto mainLogger=logFactory.CreateLogger("Main");

@@ -3,6 +3,7 @@
 
 #include "IConfig.h"
 #include "IPEndpoint.h"
+#include "User.h"
 
 #include <string>
 #include <vector>
@@ -18,8 +19,10 @@ class Config final : public IConfig
         int workersCount;
         int workersSpawnCount;
         std::unordered_set<IPEndpoint> listenAddrs;
+        std::unordered_map<std::string,const User> users;
     public:
         void AddListenAddr(const IPEndpoint &endpoint);
+        void AddUser(const User &user);
         void SetSocketTimeoutMS(int timeoutMS);
         void SetServiceIntervalMS(int intervalMS);
         void SetWorkersCount(int count);
@@ -32,6 +35,7 @@ class Config final : public IConfig
         timeval GetServiceIntervalTV() const final;
         int GetWorkersCount() const final;
         int GetWorkersSpawnCount() const final;
+        const User * GetUser(std::string &name) const final;
 };
 
 #endif //CONFIG_H

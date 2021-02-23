@@ -1,8 +1,8 @@
 #ifndef ICONFIG_H
 #define ICONFIG_H
 
-#include "IPAddress.h"
 #include "IPEndpoint.h"
+#include "User.h"
 
 #include "string"
 #include "unordered_map"
@@ -23,6 +23,7 @@ class IConfig
         //settings for job dispatcher
         virtual int GetWorkersCount() const = 0;
         virtual int GetWorkersSpawnCount() const = 0;
+        virtual const User * GetUser(std::string &name) const = 0;
 };
 
 #endif
