@@ -1,6 +1,9 @@
 #ifndef IJOB_RESULT_H
 #define IJOB_RESULT_H
 
+#include <unordered_map>
+#include "State.h"
+
 enum JobResultType
 {
     JR_TERMINAL,
@@ -20,11 +23,22 @@ class IJobResult
         const JobResultType resultType;
 };
 
-class IJobTerminalResult : public IJobResult
+class IJobIntermediateResult : public IJobResult
 {
     protected:
-        IJobTerminalResult():
-            IJobResult(JR_TERMINAL)
+        IJobIntermediateResult(const JobResultType _resultType, const State &_state):
+            IJobResult(_resultType),
+            state(_state)
+        {};
+    public:
+        const State state;
+};
+
+class IJobTerminalResult : public IJobIntermediateResult
+{
+    protected:
+        IJobTerminalResult(const State &_state):
+            IJobIntermediateResult(JR_TERMINAL,_state)
         {};
 };
 
