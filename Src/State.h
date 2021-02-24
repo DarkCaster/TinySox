@@ -9,7 +9,8 @@ class State
 {
     public:
         State(const std::vector<std::shared_ptr<SocketClaim>> &socketClaims, const std::vector<SocketClaimState> &socketClaimStates);
-        std::vector<std::shared_ptr<SocketClaim>> CopyClaims() const;
+        State ClaimAllSockets() const;
+        State DisclaimAllSockets() const;
         const std::vector<std::shared_ptr<SocketClaim>> socketClaims;
         const std::vector<SocketClaimState> socketClaimStates;
 };

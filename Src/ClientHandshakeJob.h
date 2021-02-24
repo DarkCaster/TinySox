@@ -15,7 +15,7 @@ class ClientHandshakeJob final : public IJob
 {
     private:
         const Config &config;
-        std::vector<std::shared_ptr<SocketClaim>> claims;
+        const State state;
         std::atomic<bool> cancelled;
     public:
         ClientHandshakeJob(const State &state, const Config &config);

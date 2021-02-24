@@ -6,10 +6,26 @@ State::State(const std::vector<std::shared_ptr<SocketClaim> >& _socketClaims, co
 {
 }
 
-std::vector<std::shared_ptr<SocketClaim>> State::CopyClaims() const
+State State::ClaimAllSockets() const
 {
-    std::vector<std::shared_ptr<SocketClaim>> result;
+    std::vector<std::shared_ptr<SocketClaim>> newSocketClaims;
+    std::vector<SocketClaimState> newSocketClaimStates;
     for(auto &claim:socketClaims)
-        result.push_back(claim);
-    return result;
+    {
+        newSocketClaimStates.push_back(claim->Claim());
+        newSocketClaims.push_back(claim);
+    }
+    return State(newSocketClaims,newSocketClaimStates);
+}
+
+State State::DisclaimAllSockets() const
+{
+    std::vector<std::shared_ptr<SocketClaim>> newSocketClaims;
+    std::vector<SocketClaimState> newSocketClaimStates;
+    for(auto &claim:socketClaims)
+    {
+        newSocketClaimStates.push_back(claim->Disclaim());
+        newSocketClaims.push_back(claim);
+    }
+    return State(newSocketClaims,newSocketClaimStates);
 }
