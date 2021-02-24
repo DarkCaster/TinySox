@@ -22,7 +22,11 @@ std::vector<IJob*> JobFactory::CreateJobsFromResult(const IJobResult &source)
 {
     //JR_TERMINAL result means that no new jobs needs to be created
     if(source.resultType==JR_TERMINAL)
+    {
+        //TODO: process State object and perform cleanup of manually created shared objects
         return std::vector<IJob*>();
+    }
+
     //TODO: create job instances based on result from previous job
     return std::vector<IJob*>();
 }

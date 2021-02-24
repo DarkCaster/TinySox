@@ -2,14 +2,16 @@
 #define STATE_H
 
 #include "SocketClaim.h"
-#include <unordered_map>
+#include <vector>
+#include <memory>
 
 class State
 {
     public:
-        void CopyClaims(std::unordered_map<int,SocketClaim*> &target);
-        const std::unordered_map<int,SocketClaim*> socketClaims;
-        const std::unordered_map<int,const SocketClaimState> socketClaimStates;
+        State(const std::vector<std::shared_ptr<SocketClaim>> &socketClaims, const std::vector<SocketClaimState> &socketClaimStates);
+        std::vector<std::shared_ptr<SocketClaim>> CopyClaims() const;
+        const std::vector<std::shared_ptr<SocketClaim>> socketClaims;
+        const std::vector<SocketClaimState> socketClaimStates;
 };
 
 #endif

@@ -4,10 +4,12 @@
 #include "IJobResult.h"
 #include "ILogger.h"
 
+#include <memory>
+
 class IJob
 {
     public:
-        virtual IJobResult Execute(ILogger &logger) = 0;
+        virtual std::unique_ptr<const IJobResult> Execute(ILogger &logger) = 0;
         virtual void Cancel(ILogger &logger) = 0;
 };
 

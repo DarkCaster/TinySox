@@ -35,7 +35,7 @@ void JobWorker::Worker()
     if(curJob==nullptr)
         return;
     //execute job and provide result
-    sender.SendMessage(this, JobCompleteMessage(curJob->Execute(logger)));
+    sender.SendMessage(this, JobCompleteMessage(*(curJob->Execute(logger))));
 }
 
 void JobWorker::OnShutdown()

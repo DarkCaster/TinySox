@@ -9,7 +9,7 @@ enum JobResultType
     JR_TERMINAL,
     JR_NEW_CLIENT,
     //JR_CLIENT_HANDSHAKE_FAILED,
-    //JR_CLIENT_MODE_CONNECT,
+    JR_CLIENT_MODE_CONNECT,
     //JR_CLIENT_MODE_BIND, //not supported currently
     //JR_CLIENT_MODE_UDP, //not supported currently
 };
@@ -51,6 +51,14 @@ class INewClientJobResult : public IJobResult
         {};
     public:
         const int clientSocketFD;
+};
+
+class IModeConnectJobResult : public IJobIntermediateResult
+{
+    protected:
+        IModeConnectJobResult(const State &_state):
+            IJobIntermediateResult(JR_CLIENT_MODE_CONNECT,_state)
+        {};
 };
 
 #endif

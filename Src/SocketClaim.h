@@ -17,8 +17,10 @@ class SocketClaim
         const int socketFD;
     public:
         SocketClaim(const int socketFD);
+        SocketClaim(const SocketClaim &other);
         SocketClaimState Claim();
         SocketClaimState Disclaim();
+        SocketClaimState GetState();
 };
 
 #endif //SOCKETCLAIM_H
