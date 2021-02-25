@@ -72,7 +72,7 @@ int main (int argc, char *argv[])
     //timeouts used by background workers for network operations and some other events
     //increasing this time will slow down reaction to some internal and external events
     //decreasing this time too much will cause high cpu usage
-    config.SetSocketTimeoutMS(500);
+    config.SetSocketTimeoutMS(1000);
 
     //parse port number
     if(args.find("-p")==args.end())
@@ -150,7 +150,7 @@ int main (int argc, char *argv[])
     //create sigset_t struct with signals
     sigset_t sigset;
     sigemptyset(&sigset);
-    if(sigaddset(&sigset,SIGHUP)!=0||sigaddset(&sigset,SIGTERM)!=0||sigaddset(&sigset,SIGUSR1)!=0||sigaddset(&sigset,SIGUSR2)!=0||pthread_sigmask(SIG_BLOCK,&sigset,nullptr)!=0)
+    if(sigaddset(&sigset,SIGHUP)!=0||sigaddset(&sigset,SIGTERM)!=0||sigaddset(&sigset,SIGUSR1)!=0||sigaddset(&sigset,SIGUSR2)!=0||sigaddset(&sigset,SIGPIPE)!=0||pthread_sigmask(SIG_BLOCK,&sigset,nullptr)!=0)
     {
         mainLogger->Error()<<"Failed to setup signal-handling"<<std::endl;
         return 1;
