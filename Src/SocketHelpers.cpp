@@ -8,7 +8,7 @@
 
 //TODO: needs refactor, maybe, read/write data from/to socket to/from streams ?
 //TODO: optimize reading and wtiting logic, use reading/writing in async manner to eliminate unneded work while awaiting for data
-TCPSocketHelper::TCPSocketHelper(ILogger &_logger, const Config &_config, const int _fd, std::atomic<bool> &_cancel):
+TCPSocketHelper::TCPSocketHelper(ILogger &_logger, const IConfig &_config, const int _fd, std::atomic<bool> &_cancel):
     logger(_logger),
     config(_config),
     fd(_fd),

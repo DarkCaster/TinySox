@@ -14,11 +14,11 @@
 class ClientHandshakeJob final : public IJob
 {
     private:
-        const Config &config;
+        const IConfig &config;
         const State state;
         std::atomic<bool> cancelled;
     public:
-        ClientHandshakeJob(const State &state, const Config &config);
+        ClientHandshakeJob(const State &state, const IConfig &config);
         //from IJob
         std::unique_ptr<const IJobResult> Execute(ILogger &logger) final;
         void Cancel(ILogger &logger) final;
