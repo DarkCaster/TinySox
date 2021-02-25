@@ -35,12 +35,17 @@ void JobWorker::Worker()
     if(curJob==nullptr)
         return;
     //execute job and provide result
-    sender.SendMessage(this, JobCompleteMessage(*(curJob->Execute(logger))));
+    auto result=curJob->Execute(logger);
+    {
+        std::lock_guard<std::mutex> guard(jobLock);
+        job=nullptr;
+    }
+    sender.SendMessage(this, JobCompleteMessage(*result));
 }
 
 void JobWorker::OnShutdown()
 {
-    std::lock_guard<std::mutex> lock(jobLock);
+    std::lock_guard<std::mutex> guard(jobLock);
     if(jobSet && job!=nullptr)
     {
         logger.Info()<<"Cancelling active job";
