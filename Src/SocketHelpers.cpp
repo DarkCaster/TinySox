@@ -18,7 +18,7 @@ TCPSocketHelper::TCPSocketHelper(ILogger &_logger, const IConfig &_config, const
     writeAllowed=true;
 }
 
-int TCPSocketHelper::ReadData(char * const target, const int len, const bool allowPartial)
+int TCPSocketHelper::ReadData(unsigned char * const target, const int len, const bool allowPartial)
 {
     if(!readAllowed)
         return -1;
@@ -75,7 +75,7 @@ int TCPSocketHelper::ReadData(char * const target, const int len, const bool all
     return -1;
 }
 
-int TCPSocketHelper::WriteData(const char * const target, const int len)
+int TCPSocketHelper::WriteData(const unsigned char* const target, const int len)
 {
     if(!writeAllowed)
         return -1;
@@ -118,11 +118,10 @@ int TCPSocketHelper::WriteData(const char * const target, const int len)
             else
                 logger.Warning()<<"Writing failed with error: "<<strerror(error);
             writeAllowed=false;
-            return static_cast<int>(dataWritten);
         }
         return static_cast<int>(dataWritten);
     }
 
-    logger.Warning()<<"Reading cancelled";
-    return false;
+    logger.Warning()<<"Writing cancelled";
+    return -1;
 }

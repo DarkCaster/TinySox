@@ -35,7 +35,7 @@ class Config final : public IConfig
         timeval GetServiceIntervalTV() const final;
         int GetWorkersCount() const final;
         int GetWorkersSpawnCount() const final;
-        const User * GetUser(std::string &name) const final;
+        const User * GetUser(const std::string &name) const final;
 };
 
 #endif //CONFIG_H

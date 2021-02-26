@@ -17,6 +17,7 @@ class ClientHandshakeJob final : public IJob
         const IConfig &config;
         const State state;
         std::atomic<bool> cancelled;
+        std::unique_ptr<const IJobResult> FailWithDisclaim();
     public:
         ClientHandshakeJob(const State &state, const IConfig &config);
         //from IJob

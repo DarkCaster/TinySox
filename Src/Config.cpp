@@ -60,7 +60,7 @@ int Config::GetWorkersSpawnCount() const
     return workersSpawnCount;
 }
 
-const User * Config::GetUser(std::string& name) const
+const User * Config::GetUser(const std::string &name) const
 {
     auto search=users.find(name);
     if(search==users.end())
