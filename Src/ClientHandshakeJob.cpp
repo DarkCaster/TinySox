@@ -44,7 +44,6 @@ std::unique_ptr<const IJobResult> ClientHandshakeJob::Execute(ILogger& logger)
     const int BUFF_LEN = 256;
     unsigned char buff[BUFF_LEN];
 
-    logger.Info()<<"Reading version";
     if(clientHelper.ReadData(buff,1,false)<1)
         return FailWithDisclaim();
     if(buff[0]!=0x05)
@@ -53,11 +52,9 @@ std::unique_ptr<const IJobResult> ClientHandshakeJob::Execute(ILogger& logger)
         return FailWithDisclaim();
     }
 
-    logger.Info()<<"Reading nmethods";
     if(clientHelper.ReadData(buff,1,false)<1)
         return FailWithDisclaim();
     int nmethods=buff[0];
-    logger.Info()<<"Auth methods count"<<nmethods;
     if(clientHelper.ReadData(buff,nmethods,false)<nmethods)
         return FailWithDisclaim();
 
@@ -78,7 +75,7 @@ std::unique_ptr<const IJobResult> ClientHandshakeJob::Execute(ILogger& logger)
         buff[0]=0x05;
         buff[1]=0xFF;
         clientHelper.WriteData(buff,2);
-        clientHelper.ReadData(buff,BUFF_LEN,true);//wait while client closes connection, may fail - it's ok.
+        clientHelper.ReadData(buff,BUFF_LEN,true); //wait while client close connection, so reading may fail (this is ok)
         return FailWithDisclaim();
     }
 
@@ -186,7 +183,6 @@ std::unique_ptr<const IJobResult> ClientHandshakeJob::Execute(ILogger& logger)
     uint16_t nsport;
     std::memcpy(reinterpret_cast<void*>(&nsport),buff,sizeof(uint16_t));
     auto port=ntohs(nsport);
-
 
     logger.Warning()<<"TODO: CLIENT RESPONSE; CMD="<<cmd<<"; ipaddr="<<destIP.Get()<<"; port"<<port;
 
