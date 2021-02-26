@@ -80,48 +80,51 @@ int TCPSocketHelper::WriteData(const unsigned char* const target, const int len)
     if(!writeAllowed)
         return -1;
 
-    while(!cancel.load())
+    int crv=0;
+    while(!cancel.load() && crv==0)
     {
         //wait for data
         fd_set set;
         FD_ZERO(&set);
         FD_SET(fd, &set);
         auto ct = config.GetSocketTimeoutTV();
-        auto crv = select(fd+1, NULL, &set, NULL, &ct);
-        if(crv==0) //socket is not available for writing
-            continue;
-
-        if(crv<0)
-        {
-            auto error=errno;
-            if(error==EINTR)//interrupted by signal
-                logger.Warning()<<"Writing (select) interrupted by signal";
-            else
-                logger.Warning()<<"Writing (select) failed with error: "<<strerror(error);
-            writeAllowed=false;
-            return -1;
-        }
-
-        //read data
-        auto dataWritten=write(fd,reinterpret_cast<const void*>(target),len);
-        if(dataWritten==0)
-        {
-            logger.Info()<<"Socket has been shutdown (write)"<<std::endl;
-            writeAllowed=false;
-            return -1;
-        }
-        if(dataWritten<len)
-        {
-            auto error=errno;
-            if(error==EINTR)//interrupted by signal
-                logger.Warning()<<"Writing interrupted by signal";
-            else
-                logger.Warning()<<"Writing failed with error: "<<strerror(error);
-            writeAllowed=false;
-        }
-        return static_cast<int>(dataWritten);
+        crv = select(fd+1, NULL, &set, NULL, &ct);
+        //crv==0 means that socket is not available for writing
     }
 
-    logger.Warning()<<"Writing cancelled";
-    return -1;
+    if(crv==0)
+    {
+        logger.Warning()<<"Writing cancelled";
+        return -1;
+    }
+
+    if(crv<0)
+    {
+        auto error=errno;
+        if(error==EINTR)//interrupted by signal
+            logger.Warning()<<"Writing (select) interrupted by signal";
+        else
+            logger.Warning()<<"Writing (select) failed with error: "<<strerror(error);
+        writeAllowed=false;
+        return -1;
+    }
+
+    //write data
+    auto dataWritten=write(fd,reinterpret_cast<const void*>(target),len);
+    if(dataWritten==0)
+    {
+        logger.Info()<<"Socket has been shutdown (write)"<<std::endl;
+        writeAllowed=false;
+        return -1;
+    }
+    if(dataWritten<len)
+    {
+        auto error=errno;
+        if(error==EINTR)//interrupted by signal
+            logger.Warning()<<"Writing interrupted by signal";
+        else
+            logger.Warning()<<"Writing failed with error: "<<strerror(error);
+        writeAllowed=false;
+    }
+    return static_cast<int>(dataWritten);
 }
