@@ -3,6 +3,7 @@
 
 #include "IPEndpoint.h"
 #include "User.h"
+#include "udns.h"
 
 #include "string"
 #include "unordered_map"
@@ -24,6 +25,7 @@ class IConfig
         virtual int GetWorkersCount() const = 0;
         virtual int GetWorkersSpawnCount() const = 0;
         virtual const User * GetUser(const std::string &name) const = 0;
+        virtual dns_ctx * GetBaseUDNSContext() const = 0;
 };
 
 #endif

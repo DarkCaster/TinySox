@@ -30,6 +30,11 @@ void Config::SetWorkersSpawnCount(int count)
     workersSpawnCount=count;
 }
 
+void Config::SetBaseUDNSContext(dns_ctx *_context)
+{
+    context=_context;
+}
+
 int Config::GetSocketTimeoutMS() const
 {
     return socketTimeout;
@@ -66,6 +71,11 @@ const User * Config::GetUser(const std::string &name) const
     if(search==users.end())
         return nullptr;
     else return &(search->second);
+}
+
+dns_ctx * Config::GetBaseUDNSContext() const
+{
+    return context;
 }
 
 std::unordered_set<IPEndpoint> Config::GetListenAddrs() const
