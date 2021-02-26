@@ -31,6 +31,8 @@ void usage(const std::string &self)
     std::cerr<<"    -wt <time, ms> workers management interval"<<std::endl;
     std::cerr<<"    -usr <username> for non anonymous login"<<std::endl;
     std::cerr<<"    -pwd <password> for provided username"<<std::endl;
+    std::cerr<<"    -dns <ipaddress> use external DNS server"<<std::endl;
+    std::cerr<<"    -src <domain> search domain for use with external DNS"<<std::endl;
 }
 
 int param_error(const std::string &self, const std::string &message)
@@ -116,7 +118,7 @@ int main (int argc, char *argv[])
         int cnt=std::atoi(args["-wt"].c_str());
         if(cnt<100 || cnt>10000)
             return param_error(argv[0],"workers management interval is invalid!");
-         config.SetServiceIntervalMS(cnt);
+        config.SetServiceIntervalMS(cnt);
     }
 
     //TODO: support for multiple users
@@ -124,6 +126,22 @@ int main (int argc, char *argv[])
         config.AddUser(User{"",""});
     else
         config.AddUser(User{args["-usr"],args.find("-pwd")==args.end()?"":args["-pwd"]});
+    config.AddUser(User{args["-usr"],args.find("-pwd")==args.end()?"":args["-pwd"]});
+
+    //ext DNS setup
+    if(args.find("-dns")==args.end())
+        dns_init(&dns_defctx,0);
+    else
+    {
+        if(!IPAddress(args["-dns"]).isValid)
+            return param_error(argv[0],"DNS address is invalid");
+        dns_reset(&dns_defctx);
+        if(dns_add_serv(&dns_defctx,IPAddress(args["-dns"]).ToString().c_str())!=1)
+            return param_error(argv[0],"Failed to set external DNS server");
+        if(args.find("-src")!=args.end() && dns_add_srch(&dns_defctx, args["-src"].c_str())<0)
+            return param_error(argv[0],"Failed to set search domain for external DNS server");
+    }
+    config.SetBaseUDNSContext(&dns_defctx);
 
     StdioLoggerFactory logFactory;
     auto mainLogger=logFactory.CreateLogger("Main");
