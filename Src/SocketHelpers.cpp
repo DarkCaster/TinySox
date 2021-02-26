@@ -67,8 +67,8 @@ int TCPSocketHelper::ReadData(unsigned char * const target, const int len, const
         dataLeft-=static_cast<int>(dataRead);
         if(allowPartial)
             return static_cast<int>(dataRead);
-        if(dataLeft>0) //we still need to read more data
-            continue;
+        if(dataLeft<1) //return if we have read all the data requested
+            return len;
     }
 
     logger.Warning()<<"Reading cancelled";
