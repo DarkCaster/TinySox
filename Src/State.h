@@ -7,10 +7,14 @@
 
 class State
 {
-    public:
+    protected:
         State(const std::vector<std::shared_ptr<SocketClaim>> &socketClaims, const std::vector<SocketClaimState> &socketClaimStates);
+    public:
+        State() = default;
         State ClaimAllSockets() const;
         State DisclaimAllSockets() const;
+        State AddSocket(int fd) const;
+        State AddSocketWithClaim(int fd) const;
         const std::vector<std::shared_ptr<SocketClaim>> socketClaims;
         const std::vector<SocketClaimState> socketClaimStates;
 };
