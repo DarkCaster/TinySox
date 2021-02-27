@@ -33,6 +33,7 @@ void usage(const std::string &self)
     std::cerr<<"    -pwd <password> for provided username"<<std::endl;
     std::cerr<<"    -dns <ipaddress> use external DNS server"<<std::endl;
     std::cerr<<"    -src <domain> search domain for use with external DNS"<<std::endl;
+    std::cerr<<"    -bsz <bytes> size of TCP buffer used for transferring data"<<std::endl;
 }
 
 int param_error(const std::string &self, const std::string &message)
@@ -146,6 +147,16 @@ int main (int argc, char *argv[])
         }
     }
     config.SetBaseUDNSContext(&dns_defctx);
+
+    //tcp buff size
+    config.SetTCPBuffSz(16384);
+    if(args.find("-bsz")!=args.end())
+    {
+        auto bsz=std::atoi(args["-bsz"].c_str());
+        if(bsz<128||bsz>131072)
+            return param_error(argv[0],"TCP buffer size is invalid");
+        config.SetTCPBuffSz(bsz);
+    }
 
     StdioLoggerFactory logFactory;
     auto mainLogger=logFactory.CreateLogger("Main");

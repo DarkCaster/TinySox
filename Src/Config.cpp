@@ -40,6 +40,11 @@ void Config::SetUDNSSearchDomainIsSet(bool val)
     udnsSRCSet=val;
 }
 
+void Config::SetTCPBuffSz(int sz)
+{
+    TCPBuffSz=sz;
+}
+
 int Config::GetSocketTimeoutMS() const
 {
     return socketTimeout;
@@ -86,6 +91,11 @@ dns_ctx * Config::GetBaseUDNSContext() const
 bool Config::GetUDNSSearchDomainIsSet() const
 {
     return udnsSRCSet;
+}
+
+int Config::GetTCPBuffSz() const
+{
+    return TCPBuffSz;
 }
 
 std::unordered_set<IPEndpoint> Config::GetListenAddrs() const
