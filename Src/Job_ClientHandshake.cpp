@@ -4,6 +4,7 @@
 
 #include <string>
 #include <cstring>
+#include <unistd.h>
 #include <netinet/in.h>
 
 class JobTerminalResult final: public IJobTerminalResult{ public: JobTerminalResult(const State &_state):IJobTerminalResult(_state){} };
@@ -193,9 +194,8 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(ILogger& logger)
         }
 
         auto ans6=dns_resolve_a6(udns_ctx, dname.c_str(), config.GetUDNSSearchDomainIsSet()?0:DNS_NOSRCH);
-        auto status=dns_status(udns_ctx);
-        if(status<0)
-            logger.Info()<<"udns IN AAAA query to host "<<dname<<" failed with status code "<<status;
+        if(dns_status(udns_ctx)<0)
+            logger.Info()<<"udns IN AAAA query to host "<<dname<<" failed!";
         else
             for(auto addr_idx=0;addr_idx<ans6->dnsa6_nrr;++addr_idx)
             {
@@ -209,9 +209,8 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(ILogger& logger)
             free(ans6);
 
         auto ans4=dns_resolve_a4(udns_ctx, dname.c_str(), config.GetUDNSSearchDomainIsSet()?0:DNS_NOSRCH);
-        status=dns_status(udns_ctx);
-        if(status<0)
-            logger.Info()<<"udns IN A query to host "<<dname<<" failed with status code "<<status;
+        if(dns_status(udns_ctx)<0)
+            logger.Info()<<"udns IN A query to host "<<dname<<" failed!";
         else
             for(auto addr_idx=0;addr_idx<ans4->dnsa4_nrr;++addr_idx)
             {
@@ -233,16 +232,76 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(ILogger& logger)
         return FailWithDisclaim();
     }
 
-    //port
+    //read port
     if(clientHelper.ReadData(buff,2,false)<2)
         return FailWithDisclaim();
     uint16_t nsport;
     std::memcpy(reinterpret_cast<void*>(&nsport),buff,sizeof(uint16_t));
     auto port=ntohs(nsport);
 
-    //TODO: try connect to one of ip-address from destIPs, create new socket claim
-    for(auto &ip:destIPs)
-        logger.Warning()<<ip;
+    //check CMD
+    unsigned char rsv=0x01;
+    if(cmd==0x01) //connect
+    {
+        //try connect to any ip-address from destIPs, create new socket claim
+        for(auto &ip:destIPs)
+        {
+            //create socket
+            auto target=socket(ip.isV6?AF_INET6:AF_INET,SOCK_STREAM,0);
+
+            linger tLinger={1,0};
+            if (setsockopt(target, SOL_SOCKET, SO_LINGER, &tLinger, sizeof(linger))!=0)
+            {
+                logger.Warning()<<"Failed to setup SO_LINGER on outgoing connection"<<strerror(errno);
+                if(close(target)!=0)
+                    logger.Error()<<"Failed to perform proper socket close after failed setup: "<<strerror(errno);
+                return FailWithDisclaim();
+            }
+
+            int cr=-1;
+            if(ip.isV6)
+            {
+                sockaddr_in6 v6sa={};
+                ip.ToSA(&v6sa);
+                v6sa.sin6_port=htons(port);
+                cr=connect(target,reinterpret_cast<sockaddr*>(&v6sa), sizeof(v6sa));
+            }
+            else
+            {
+                sockaddr_in v4sa={};
+                ip.ToSA(&v4sa);
+                v4sa.sin_port=htons(port);
+                cr=connect(target,reinterpret_cast<sockaddr*>(&v4sa), sizeof(v4sa));
+            }
+
+            if(cr<0)
+            {
+                auto error=errno;
+                logger.Warning()<<"Failed to connect "<<ip<<" with error: "<<strerror(error);
+                if(error==ECONNREFUSED)
+                    rsv=0x05;
+                if(error==ENETUNREACH)
+                    rsv=0x03;
+                if(close(target)!=0)
+                    logger.Error()<<"Failed to perform proper socket close after connection failure: "<<strerror(errno);
+                return FailWithDisclaim();
+            }
+            else
+            {
+                rsv=0;
+                //TODO: create new socket claim, update state
+                //get BND.ADDR and BND.PORT
+                break;
+            }
+        }
+    }
+    else
+    {
+        logger.Warning()<<"Command is not supported: "<<cmd;
+        rsv=0x07;
+    }
+
+    //TODO: send response
 
     return std::unique_ptr<const IJobResult>(new ModeConnectJobResult(state));
 }

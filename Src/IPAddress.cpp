@@ -95,11 +95,13 @@ void IPAddress::ToSA(void* const targetSA) const
     if(isV6)
     {
         auto target=reinterpret_cast<sockaddr_in6*>(targetSA);
+        target->sin6_family=AF_INET6;
         std::memcpy(reinterpret_cast<void*>(&(target->sin6_addr)),reinterpret_cast<const void*>(ip.data),IPV6_ADDR_LEN);
     }
     else
     {
         auto target=reinterpret_cast<sockaddr_in*>(targetSA);
+        target->sin_family=AF_INET;
         std::memcpy(reinterpret_cast<void*>(&(target->sin_addr)),reinterpret_cast<const void*>(ip.data),IPV4_ADDR_LEN);
     }
 }
