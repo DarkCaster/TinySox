@@ -23,6 +23,7 @@ class IPAddress
         IPAddress(const std::string &string);
 
         void ToSA(void * const targetSA) const;
+        void ToRawBuff(void * const target) const;
         const void * RawData() const;
         std::string ToString() const;
 

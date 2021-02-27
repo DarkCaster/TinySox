@@ -106,6 +106,11 @@ void IPAddress::ToSA(void* const targetSA) const
     }
 }
 
+void IPAddress::ToRawBuff(void* const target) const
+{
+    std::memcpy(target,reinterpret_cast<const void*>(ip.data),isV6?IPV6_ADDR_LEN:IPV4_ADDR_LEN);
+}
+
 const void * IPAddress::RawData() const
 {
     return ip.data;
