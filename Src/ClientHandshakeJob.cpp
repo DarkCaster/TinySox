@@ -1,6 +1,5 @@
 #include "ClientHandshakeJob.h"
 #include "SocketHelpers.h"
-#include "ImmutableStorage.h"
 #include "IPAddress.h"
 
 #include <string>
@@ -147,29 +146,86 @@ std::unique_ptr<const IJobResult> ClientHandshakeJob::Execute(ILogger& logger)
         return FailWithDisclaim();
     int atyp=buff[0];
 
-    auto destIP=ImmutableStorage<IPAddress>(IPAddress());
+    std::vector<IPAddress> destIPs;
     if(atyp==0x01)
     {
         if(clientHelper.ReadData(buff,IPV4_ADDR_LEN,false)<IPV4_ADDR_LEN)
             return FailWithDisclaim();
-        destIP.Set(IPAddress(buff,IPV4_ADDR_LEN));
+        IPAddress v4addr(buff,IPV4_ADDR_LEN);
+        if(!v4addr.isValid)
+            logger.Warning()<<"Invalid ipv4 address provided by client!";
+        else
+            destIPs.push_back(v4addr);
     }
     else if(atyp==0x04)
     {
         if(clientHelper.ReadData(buff,IPV6_ADDR_LEN,false)<IPV6_ADDR_LEN)
             return FailWithDisclaim();
-        destIP.Set(IPAddress(buff,IPV6_ADDR_LEN));
+        IPAddress v6addr(buff,IPV6_ADDR_LEN);
+        if(!v6addr.isValid)
+            logger.Warning()<<"Invalid ipv6 address provided by client!";
+        else
+            destIPs.push_back(v6addr);
     }
     else if(atyp==0x03)
     {
-        //TODO: dns resolve, connect
+        //dns resolve
         if(clientHelper.ReadData(buff,1,false)<1)
             return FailWithDisclaim();
         int dnameLen=buff[0];
         if(clientHelper.ReadData(buff,dnameLen,false)<dnameLen)
             return FailWithDisclaim();
         std::string dname(reinterpret_cast<char*>(buff),dnameLen);
-        logger.Warning()<<"TODO: DNS RESOLVE"<<dname;
+
+        logger.Info()<<"Resolving domain: "<<dname;
+        auto udns_ctx=dns_new(config.GetBaseUDNSContext());
+        if(udns_ctx==nullptr)
+        {
+            logger.Error()<<"Failed to create new UDNS context: "<<strerror(errno);
+            return FailWithDisclaim();
+        }
+
+        if(dns_open(udns_ctx)<0)
+        {
+            logger.Error()<<"dns_open failed: "<<strerror(errno);
+            dns_free(udns_ctx);
+            return FailWithDisclaim();
+        }
+
+        auto ans6=dns_resolve_a6(udns_ctx, dname.c_str(), config.GetUDNSSearchDomainIsSet()?0:DNS_NOSRCH);
+        auto status=dns_status(udns_ctx);
+        if(status<0)
+            logger.Info()<<"udns IN AAAA query to host "<<dname<<" failed with status code "<<status;
+        else
+            for(auto addr_idx=0;addr_idx<ans6->dnsa6_nrr;++addr_idx)
+            {
+                IPAddress v6Addr(&(ans6->dnsa6_addr[addr_idx]),IPV6_ADDR_LEN);
+                if(!v6Addr.isValid)
+                    logger.Warning()<<"udns IN AAAA query to host "<<dname<<" produced invalid ipv6 address!";
+                else
+                    destIPs.push_back(v6Addr);
+            }
+        if(ans6!=NULL)
+            free(ans6);
+
+        auto ans4=dns_resolve_a4(udns_ctx, dname.c_str(), config.GetUDNSSearchDomainIsSet()?0:DNS_NOSRCH);
+        status=dns_status(udns_ctx);
+        if(status<0)
+            logger.Info()<<"udns IN A query to host "<<dname<<" failed with status code "<<status;
+        else
+            for(auto addr_idx=0;addr_idx<ans4->dnsa4_nrr;++addr_idx)
+            {
+                IPAddress v4Addr(&(ans4->dnsa4_addr[addr_idx]),IPV4_ADDR_LEN);
+                if(!v4Addr.isValid)
+                    logger.Warning()<<"udns IN A query to host "<<dname<<" produced invalid ipv4 address!";
+                else
+                    destIPs.push_back(v4Addr);
+            }
+        if(ans4!=NULL)
+            free(ans4);
+
+        dns_close(udns_ctx);
+        dns_free(udns_ctx);
     }
     else
     {
@@ -184,9 +240,9 @@ std::unique_ptr<const IJobResult> ClientHandshakeJob::Execute(ILogger& logger)
     std::memcpy(reinterpret_cast<void*>(&nsport),buff,sizeof(uint16_t));
     auto port=ntohs(nsport);
 
-    logger.Warning()<<"TODO: CLIENT RESPONSE; CMD="<<cmd<<"; ipaddr="<<destIP.Get()<<"; port"<<port;
-
-    //TODO: create another socket, and new socket-claim object
+    //TODO: try connect to one of ip-address from destIPs, create new socket claim
+    for(auto &ip:destIPs)
+        logger.Warning()<<ip;
 
     return std::unique_ptr<const IJobResult>(new ModeConnectJobResult(state));
 }
