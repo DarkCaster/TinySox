@@ -243,6 +243,9 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(ILogger& logger)
 
     if(cmd==0x01) //connect
     {
+        if(destIPs.empty())
+            logger.Warning()<<"No valid ip addresses to connect";
+
         //try connect to any ip-address from destIPs, create new socket claim
         for(auto &ip:destIPs)
         {
