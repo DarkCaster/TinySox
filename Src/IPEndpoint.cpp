@@ -1,4 +1,6 @@
 #include "IPEndpoint.h"
+#include <arpa/inet.h>
+#include <cstring>
 
 IPEndpoint::IPEndpoint():
     address(IPAddress()),
@@ -12,10 +14,38 @@ IPEndpoint::IPEndpoint(const IPAddress &_address, const ushort _port):
 {
 }
 
+uint16_t DecodePort(const sockaddr * const sa)
+{
+    if(sa->sa_family==AF_INET6)
+    {
+        sockaddr_in6 sa_in6;
+        std::memcpy(reinterpret_cast<void*>(&sa_in6),reinterpret_cast<const void*>(sa),sizeof(sockaddr_in6));
+        return sa_in6.sin6_port;
+    }
+    sockaddr_in sa_in;
+    std::memcpy(reinterpret_cast<void*>(&sa_in),reinterpret_cast<const void*>(sa),sizeof(sockaddr_in));
+    return sa_in.sin_port;
+}
+
+IPEndpoint::IPEndpoint(const sockaddr* const sa):
+    address(sa),
+    port(DecodePort(sa))
+{
+}
+
 IPEndpoint::IPEndpoint(const IPEndpoint& other):
     address(other.address),
     port(other.port)
 {
+}
+
+int IPEndpoint::ToRawBuff(void* const target) const
+{
+    auto addrLen=address.isV6?IPV6_ADDR_LEN:IPV4_ADDR_LEN;
+    address.ToRawBuff(target);
+    auto nsPort=htons(port);
+    memcpy(reinterpret_cast<char*>(target)+addrLen,reinterpret_cast<void*>(&nsPort),sizeof(nsPort));
+    return static_cast<int>(addrLen+sizeof(nsPort));
 }
 
 size_t IPEndpoint::GetHashCode() const

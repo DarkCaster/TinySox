@@ -8,11 +8,13 @@ class IPEndpoint
     public:
         IPEndpoint();
         IPEndpoint(const IPAddress &address, const ushort port);
+        IPEndpoint(const sockaddr * const sa);
         IPEndpoint(const IPEndpoint &other);
 
         const IPAddress address;
-        const ushort port;
+        const uint16_t port;
 
+        int ToRawBuff(void * const target) const;
         size_t GetHashCode() const;
         bool Equals(const IPEndpoint &other) const;
         bool Less(const IPEndpoint &other) const;
