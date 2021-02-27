@@ -8,7 +8,6 @@ JobFactory::JobFactory(ILogger &_logger, const IConfig &_config):
     logger(_logger),
     config(_config)
 {
-
 }
 
 void JobFactory::DestroyJob(IJob* const target)
@@ -16,14 +15,13 @@ void JobFactory::DestroyJob(IJob* const target)
     if(target==nullptr)
         return;
 
+    if(target->jobType==J_HANDSHAKE)
+    {
+        delete dynamic_cast<Job_ClientHandshake*>(target);
+        return;
+    }
 
-    //TODO:
-
-    //detect job type
-    //cast to corresponding job-class
-    //free memory
-    /*dynamic_cast<REAL_JOB_TYPE*>(target)==nullptr)
-    delete dynamic_cast<REAL_JOB_TYPE*>(target);*/
+    logger.Error()<<"Cannot dispose unknown job type!";
 }
 
 std::vector<IJob*> JobFactory::CreateJobsFromResult(const IJobResult &source)
