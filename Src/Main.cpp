@@ -138,8 +138,12 @@ int main (int argc, char *argv[])
         dns_reset(&dns_defctx);
         if(dns_add_serv(&dns_defctx,IPAddress(args["-dns"]).ToString().c_str())!=1)
             return param_error(argv[0],"Failed to set external DNS server");
-        if(args.find("-src")!=args.end() && dns_add_srch(&dns_defctx, args["-src"].c_str())<0)
-            return param_error(argv[0],"Failed to set search domain for external DNS server");
+        if(args.find("-src")!=args.end())
+        {
+            if(dns_add_srch(&dns_defctx, args["-src"].c_str())<0)
+                return param_error(argv[0],"Failed to set search domain for external DNS server");
+            config.SetUDNSSearchDomainIsSet(true);
+        }
     }
     config.SetBaseUDNSContext(&dns_defctx);
 

@@ -26,6 +26,7 @@ class IConfig
         virtual int GetWorkersSpawnCount() const = 0;
         virtual const User * GetUser(const std::string &name) const = 0;
         virtual dns_ctx * GetBaseUDNSContext() const = 0;
+        virtual bool GetUDNSSearchDomainIsSet() const = 0;
 };
 
 #endif

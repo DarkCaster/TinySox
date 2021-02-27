@@ -19,6 +19,7 @@ class Config final : public IConfig
         int workersCount;
         int workersSpawnCount;
         dns_ctx * context;
+        bool udnsSRCSet;
         std::unordered_set<IPEndpoint> listenAddrs;
         std::unordered_map<std::string,const User> users;
     public:
@@ -29,6 +30,7 @@ class Config final : public IConfig
         void SetWorkersCount(int count);
         void SetWorkersSpawnCount(int count);
         void SetBaseUDNSContext(dns_ctx * context);
+        void SetUDNSSearchDomainIsSet(bool val);
         //from IConfig
         std::unordered_set<IPEndpoint> GetListenAddrs() const final;
         int GetSocketTimeoutMS() const final;
@@ -39,6 +41,7 @@ class Config final : public IConfig
         int GetWorkersSpawnCount() const final;
         const User * GetUser(const std::string &name) const final;
         dns_ctx * GetBaseUDNSContext() const final;
+        bool GetUDNSSearchDomainIsSet() const final;
 };
 
 #endif //CONFIG_H

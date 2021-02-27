@@ -35,6 +35,11 @@ void Config::SetBaseUDNSContext(dns_ctx *_context)
     context=_context;
 }
 
+void Config::SetUDNSSearchDomainIsSet(bool val)
+{
+    udnsSRCSet=val;
+}
+
 int Config::GetSocketTimeoutMS() const
 {
     return socketTimeout;
@@ -76,6 +81,11 @@ const User * Config::GetUser(const std::string &name) const
 dns_ctx * Config::GetBaseUDNSContext() const
 {
     return context;
+}
+
+bool Config::GetUDNSSearchDomainIsSet() const
+{
+    return udnsSRCSet;
 }
 
 std::unordered_set<IPEndpoint> Config::GetListenAddrs() const
