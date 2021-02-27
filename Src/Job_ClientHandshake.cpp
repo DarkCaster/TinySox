@@ -195,9 +195,7 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(ILogger& logger)
         }
 
         auto ans6=dns_resolve_a6(udns_ctx, dname.c_str(), config.GetUDNSSearchDomainIsSet()?0:DNS_NOSRCH);
-        if(dns_status(udns_ctx)<0)
-            logger.Info()<<"udns IN AAAA query to host "<<dname<<" failed!";
-        else
+        if(dns_status(udns_ctx)==0)
             for(auto addr_idx=0;addr_idx<ans6->dnsa6_nrr;++addr_idx)
             {
                 IPAddress v6Addr(&(ans6->dnsa6_addr[addr_idx]),IPV6_ADDR_LEN);
@@ -210,9 +208,7 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(ILogger& logger)
             free(ans6);
 
         auto ans4=dns_resolve_a4(udns_ctx, dname.c_str(), config.GetUDNSSearchDomainIsSet()?0:DNS_NOSRCH);
-        if(dns_status(udns_ctx)<0)
-            logger.Info()<<"udns IN A query to host "<<dname<<" failed!";
-        else
+        if(dns_status(udns_ctx)==0)
             for(auto addr_idx=0;addr_idx<ans4->dnsa4_nrr;++addr_idx)
             {
                 IPAddress v4Addr(&(ans4->dnsa4_addr[addr_idx]),IPV4_ADDR_LEN);
@@ -293,6 +289,7 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(ILogger& logger)
             else
             {
                 rep=0;
+                logger.Info()<<"Connected to: "<<ip;
                 //get BND.ADDR and BND.PORT
                 sockaddr sa;
                 socklen_t sl=sizeof(sa);
