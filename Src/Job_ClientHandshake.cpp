@@ -291,7 +291,7 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(ILogger& logger)
             }
             else
             {
-                rep=0;
+                rep=0x00;
                 logger.Info()<<"Connected to: "<<ip;
                 //get BND.ADDR and BND.PORT
                 sockaddr sa;
@@ -328,7 +328,6 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(ILogger& logger)
     buff[0]=0x05; //ver
     buff[1]=rep; //rep
     buff[2]=0x00; //rsv
-    //TODO: find wether domain name type is supported could be used here
     auto ep=bindEP.Get();
     buff[3]=ep.address.isV6?0x04:0x01;
     auto respLen=ep.ToRawBuff(buff+4)+4;
@@ -340,7 +339,8 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(ILogger& logger)
         return FailWithDisclaim(finalState.Get());
     }
 
-    if(cmd==0x01)
+    //TODO: support other commands, like BIND or UDP
+    if(cmd==0x01 && rep==0x00)
         return std::unique_ptr<const IJobResult>(new ModeConnectJobResult(finalState.Get().DisclaimAllSockets()));
     else
         return FailWithDisclaim(finalState.Get());

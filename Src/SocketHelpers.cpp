@@ -140,8 +140,6 @@ bool SocketClaimsCleaner::CloseUnclaimedSockets(ILogger &logger, const std::vect
                 logger.Error()<<"Failed to perform socket close: "<<strerror(errno);
                 result=false;
             }
-            else
-                logger.Info()<<"Closed socket with fd: "<<cState.socketFD;
         }
     return result;
 }
