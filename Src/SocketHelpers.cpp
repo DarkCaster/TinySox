@@ -128,3 +128,20 @@ int TCPSocketHelper::WriteData(const unsigned char* const target, const int len)
     }
     return static_cast<int>(dataWritten);
 }
+
+bool SocketClaimsCleaner::CloseUnclaimedSockets(ILogger &logger, const std::vector<SocketClaimState> &claimStates)
+{
+    bool result=true;
+    for(auto &cState:claimStates)
+        if(cState.counter<1)
+        {
+            if(close(cState.socketFD)!=0)
+            {
+                logger.Error()<<"Failed to perform socket close: "<<strerror(errno);
+                result=false;
+            }
+            else
+                logger.Info()<<"Closed socket with fd: "<<cState.socketFD;
+        }
+    return result;
+}

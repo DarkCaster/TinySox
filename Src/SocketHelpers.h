@@ -3,8 +3,10 @@
 
 #include "Config.h"
 #include "ILogger.h"
+#include "SocketClaim.h"
 
 #include <atomic>
+#include <vector>
 
 class TCPSocketHelper
 {
@@ -19,6 +21,12 @@ class TCPSocketHelper
         TCPSocketHelper(ILogger &logger, const IConfig &config, const int fd, std::atomic<bool> &cancel);
         int ReadData(unsigned char * const target, const int len, const bool allowPartial);
         int WriteData(const unsigned char * const target, const int len);
+};
+
+class SocketClaimsCleaner
+{
+    public:
+        static bool CloseUnclaimedSockets(ILogger &logger, const std::vector<SocketClaimState> &claimStates);
 };
 
 #endif //SOCKET_HELPERS_H
