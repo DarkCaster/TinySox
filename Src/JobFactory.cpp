@@ -1,5 +1,5 @@
 #include "JobFactory.h"
-#include "ClientHandshakeJob.h"
+#include "Job_ClientHandshake.h"
 
 #include <vector>
 
@@ -42,7 +42,7 @@ std::vector<IJob*> JobFactory::CreateJobsFromResult(const IJobResult &source)
         newSocketClaimStates.push_back(newSocketClaims[0]->GetState());
         //create state object for the new client connection
         State state(newSocketClaims,newSocketClaimStates);
-        return std::vector<IJob*>{new ClientHandshakeJob(state,config)};
+        return std::vector<IJob*>{new Job_ClientHandshake(state,config)};
     }
 
     //TODO: create job instances based on result from previous job

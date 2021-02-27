@@ -1,4 +1,4 @@
-#include "ClientHandshakeJob.h"
+#include "Job_ClientHandshake.h"
 #include "SocketHelpers.h"
 #include "IPAddress.h"
 
@@ -9,14 +9,14 @@
 class JobTerminalResult final: public IJobTerminalResult{ public: JobTerminalResult(const State &_state):IJobTerminalResult(_state){} };
 class ModeConnectJobResult final: public IModeConnectJobResult{ public: ModeConnectJobResult(const State &_state):IModeConnectJobResult(_state){} };
 
-ClientHandshakeJob::ClientHandshakeJob(const State &_state, const IConfig &_config):
+Job_ClientHandshake::Job_ClientHandshake(const State &_state, const IConfig &_config):
     config(_config),
     state(_state.ClaimAllSockets())
 {
     cancelled.store(false);
 }
 
-std::unique_ptr<const IJobResult> ClientHandshakeJob::FailWithDisclaim()
+std::unique_ptr<const IJobResult> Job_ClientHandshake::FailWithDisclaim()
 {
     return std::unique_ptr<const IJobResult>(new JobTerminalResult(state.DisclaimAllSockets()));
 }
@@ -30,7 +30,7 @@ std::unique_ptr<const IJobResult> SendAuthFailWithDisclaim(const State &state, T
     return std::unique_ptr<const IJobResult>(new JobTerminalResult(state.DisclaimAllSockets()));
 }
 
-std::unique_ptr<const IJobResult> ClientHandshakeJob::Execute(ILogger& logger)
+std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(ILogger& logger)
 {
     if(state.socketClaims.size()!=1)
     {
@@ -247,7 +247,7 @@ std::unique_ptr<const IJobResult> ClientHandshakeJob::Execute(ILogger& logger)
     return std::unique_ptr<const IJobResult>(new ModeConnectJobResult(state));
 }
 
-void ClientHandshakeJob::Cancel(ILogger& logger)
+void Job_ClientHandshake::Cancel(ILogger& logger)
 {
     logger.Warning()<<"Cancelling client handshake job";
     cancelled.store(true);
