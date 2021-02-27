@@ -19,9 +19,9 @@ Job_ClientHandshake::Job_ClientHandshake(const State &_state, const IConfig &_co
     cancelled.store(false);
 }
 
-std::unique_ptr<const IJobResult> FailWithDisclaim(const State &state)
+static std::unique_ptr<const IJobResult> FailWithDisclaim(const State &state)
 {
-    return std::unique_ptr<const IJobResult>(new JobTerminalResult(state.DisclaimAllSockets()));
+    return std::make_unique<const JobTerminalResult>(state.DisclaimAllSockets());
 }
 
 std::unique_ptr<const IJobResult> SendAuthFailWithDisclaim(const State &state, TCPSocketHelper &clientHelper)
@@ -30,14 +30,14 @@ std::unique_ptr<const IJobResult> SendAuthFailWithDisclaim(const State &state, T
     buff[0]=0x01;
     buff[1]=0x01;
     clientHelper.WriteData(buff,2);
-    return std::unique_ptr<const IJobResult>(new JobTerminalResult(state.DisclaimAllSockets()));
+    return std::make_unique<const JobTerminalResult>(state.DisclaimAllSockets());
 }
 
 std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(ILogger& logger)
 {
     if(state.socketClaims.size()!=1)
     {
-        logger.Error()<<"ClientHandshakeJob: invalid configuration";
+        logger.Error()<<"Job_ClientHandshake: invalid configuration";
         return FailWithDisclaim(state);
     }
 
@@ -342,7 +342,7 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(ILogger& logger)
 
     //TODO: support other commands, like BIND or UDP
     if(cmd==0x01 && rep==0x00)
-        return std::unique_ptr<const IJobResult>(new ModeConnectJobResult(finalState.Get().DisclaimAllSockets()));
+        return std::make_unique<const ModeConnectJobResult>(finalState.Get().DisclaimAllSockets());
     else
         return FailWithDisclaim(finalState.Get());
 }
