@@ -150,6 +150,7 @@ int main (int argc, char *argv[])
     StdioLoggerFactory logFactory;
     auto mainLogger=logFactory.CreateLogger("Main");
     auto dispLogger=logFactory.CreateLogger("Dispatcher");
+    auto jobFactoryLogger=logFactory.CreateLogger("JobFactory");
     auto listenerLogger=logFactory.CreateLogger("Listener");
 
     mainLogger->Info()<<"Starting up";
@@ -161,7 +162,7 @@ int main (int argc, char *argv[])
 
     //create instances for main logic
     JobWorkerFactory jobWorkerFactory;
-    JobFactory jobFactory(config);
+    JobFactory jobFactory(*jobFactoryLogger,config);
     JobDispatcher jobDispatcher(*dispLogger,logFactory,jobWorkerFactory,jobFactory,messageBroker,config);
     messageBroker.AddSubscriber(jobDispatcher);
 
@@ -223,6 +224,7 @@ int main (int argc, char *argv[])
     jobDispatcher.Shutdown();
 
     logFactory.DestroyLogger(listenerLogger);
+    logFactory.DestroyLogger(jobFactoryLogger);
     logFactory.DestroyLogger(dispLogger);
     logFactory.DestroyLogger(mainLogger);
 

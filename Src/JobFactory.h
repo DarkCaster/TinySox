@@ -1,6 +1,7 @@
 #ifndef JOB_FACTORY_H
 #define JOB_FACTORY_H
 
+#include "ILogger.h"
 #include "IConfig.h"
 #include "IJob.h"
 #include "IJobFactory.h"
@@ -8,9 +9,10 @@
 class JobFactory final : public IJobFactory
 {
     private:
+        ILogger &logger;
         const IConfig &config;
     public:
-        JobFactory(const IConfig &config);
+        JobFactory(ILogger &logger, const IConfig &config);
         void DestroyJob(IJob* const target) final;
         std::vector<IJob*> CreateJobsFromResult(const IJobResult &source) final;
 };

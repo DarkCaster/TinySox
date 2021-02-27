@@ -1,12 +1,14 @@
 #include "JobFactory.h"
 #include "Job_ClientHandshake.h"
+#include "SocketHelpers.h"
 
 #include <vector>
 
-
-JobFactory::JobFactory(const IConfig &_config):
+JobFactory::JobFactory(ILogger &_logger, const IConfig &_config):
+    logger(_logger),
     config(_config)
 {
+
 }
 
 void JobFactory::DestroyJob(IJob* const target)
@@ -26,10 +28,13 @@ void JobFactory::DestroyJob(IJob* const target)
 
 std::vector<IJob*> JobFactory::CreateJobsFromResult(const IJobResult &source)
 {
-    //JR_TERMINAL result means that no new jobs needs to be created
+
+    //no new jobs needs to be created for JR_TERMINAL job result
     if(source.resultType==JR_TERMINAL)
     {
-        //TODO: process State object and perform cleanup of manually created shared objects
+        //dispose stuff stored in state object
+        auto result=static_cast<const IJobTerminalResult&>(source);
+        SocketClaimsCleaner::CloseUnclaimedSockets(logger,result.state.socketClaimStates);
         return std::vector<IJob*>();
     }
 
