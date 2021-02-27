@@ -1,6 +1,7 @@
 #include "Job_ClientHandshake.h"
 #include "SocketHelpers.h"
 #include "IPAddress.h"
+#include "ImmutableStorage.h"
 
 #include <string>
 #include <cstring>
@@ -17,7 +18,7 @@ Job_ClientHandshake::Job_ClientHandshake(const State &_state, const IConfig &_co
     cancelled.store(false);
 }
 
-std::unique_ptr<const IJobResult> Job_ClientHandshake::FailWithDisclaim()
+std::unique_ptr<const IJobResult> FailWithDisclaim(const State &state)
 {
     return std::unique_ptr<const IJobResult>(new JobTerminalResult(state.DisclaimAllSockets()));
 }
@@ -36,27 +37,27 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(ILogger& logger)
     if(state.socketClaims.size()!=1)
     {
         logger.Error()<<"ClientHandshakeJob: invalid configuration";
-        return FailWithDisclaim();
+        return FailWithDisclaim(state);
     }
 
     //dumb abstraction for reading/writing data via sockets
     TCPSocketHelper clientHelper(logger,config,state.socketClaimStates[0].socketFD,cancelled);
-    const int BUFF_LEN = 256;
-    unsigned char buff[BUFF_LEN];
+    const int BUFF_LEN = 512; //this should be enough for any response
+    unsigned char buff[BUFF_LEN]={};
 
     if(clientHelper.ReadData(buff,1,false)<1)
-        return FailWithDisclaim();
+        return FailWithDisclaim(state);
     if(buff[0]!=0x05)
     {
         logger.Warning()<<"Client handshake failed, invalid protocol version: "<<static_cast<int>(buff[0]);
-        return FailWithDisclaim();
+        return FailWithDisclaim(state);
     }
 
     if(clientHelper.ReadData(buff,1,false)<1)
-        return FailWithDisclaim();
+        return FailWithDisclaim(state);
     int nmethods=buff[0];
     if(clientHelper.ReadData(buff,nmethods,false)<nmethods)
-        return FailWithDisclaim();
+        return FailWithDisclaim(state);
 
     //method selection: we can only support 0x00 and 0x02
     int selectedAuthMethod=-1;
@@ -76,7 +77,7 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(ILogger& logger)
         buff[1]=0xFF;
         clientHelper.WriteData(buff,2);
         clientHelper.ReadData(buff,BUFF_LEN,true); //wait while client close connection, so reading may fail (this is ok)
-        return FailWithDisclaim();
+        return FailWithDisclaim(state);
     }
 
     //notify client about selected auth method
@@ -85,14 +86,14 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(ILogger& logger)
     if(clientHelper.WriteData(buff,2)!=2)
     {
         logger.Warning()<<"Client handshake failed, clien disconnected (auth method selection)";
-        return FailWithDisclaim();
+        return FailWithDisclaim(state);
     }
 
     //login/password auth
     if(selectedAuthMethod==0x02)
     {
         if(clientHelper.ReadData(buff,1,false)<1)
-            return FailWithDisclaim();
+            return FailWithDisclaim(state);
         if(buff[0]!=0x01)
         {
             logger.Warning()<<"Client handshake failed, invalid auth version: "<<static_cast<int>(buff[0]);
@@ -100,17 +101,17 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(ILogger& logger)
         }
         //username
         if(clientHelper.ReadData(buff,1,false)<1)
-            return FailWithDisclaim();
+            return FailWithDisclaim(state);
         int ulen=buff[0];
         if(clientHelper.ReadData(buff,ulen,false)<ulen)
-            return FailWithDisclaim();
+            return FailWithDisclaim(state);
         std::string username(reinterpret_cast<char*>(buff),ulen);
         //password
         if(clientHelper.ReadData(buff,1,false)<1)
-            return FailWithDisclaim();
+            return FailWithDisclaim(state);
         int plen=buff[0];
         if(clientHelper.ReadData(buff,plen,false)<plen)
-            return FailWithDisclaim();
+            return FailWithDisclaim(state);
         std::string password(reinterpret_cast<char*>(buff),plen);
         //check authentification
         auto user=config.GetUser(username);
@@ -123,35 +124,35 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(ILogger& logger)
         buff[0]=0x01;
         buff[1]=0x00;
         if(clientHelper.WriteData(buff,2)!=2)
-            return FailWithDisclaim();
+            return FailWithDisclaim(state);
     }
 
     //connection neogotiation
 
     //version
     if(clientHelper.ReadData(buff,1,false)<1)
-        return FailWithDisclaim();
+        return FailWithDisclaim(state);
     if(buff[0]!=0x05)
     {
         logger.Warning()<<"Client handshake failed, invalid protocol version: "<<static_cast<int>(buff[0]);
-        return FailWithDisclaim();
+        return FailWithDisclaim(state);
     }
 
     //cmd+reserved
     if(clientHelper.ReadData(buff,2,false)<2)
-        return FailWithDisclaim();
+        return FailWithDisclaim(state);
     int cmd=buff[0];
 
     //atyp
     if(clientHelper.ReadData(buff,1,false)<1)
-        return FailWithDisclaim();
+        return FailWithDisclaim(state);
     int atyp=buff[0];
 
     std::vector<IPAddress> destIPs;
     if(atyp==0x01)
     {
         if(clientHelper.ReadData(buff,IPV4_ADDR_LEN,false)<IPV4_ADDR_LEN)
-            return FailWithDisclaim();
+            return FailWithDisclaim(state);
         IPAddress v4addr(buff,IPV4_ADDR_LEN);
         if(!v4addr.isValid)
             logger.Warning()<<"Invalid ipv4 address provided by client!";
@@ -161,7 +162,7 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(ILogger& logger)
     else if(atyp==0x04)
     {
         if(clientHelper.ReadData(buff,IPV6_ADDR_LEN,false)<IPV6_ADDR_LEN)
-            return FailWithDisclaim();
+            return FailWithDisclaim(state);
         IPAddress v6addr(buff,IPV6_ADDR_LEN);
         if(!v6addr.isValid)
             logger.Warning()<<"Invalid ipv6 address provided by client!";
@@ -172,10 +173,10 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(ILogger& logger)
     {
         //dns resolve
         if(clientHelper.ReadData(buff,1,false)<1)
-            return FailWithDisclaim();
+            return FailWithDisclaim(state);
         int dnameLen=buff[0];
         if(clientHelper.ReadData(buff,dnameLen,false)<dnameLen)
-            return FailWithDisclaim();
+            return FailWithDisclaim(state);
         std::string dname(reinterpret_cast<char*>(buff),dnameLen);
 
         logger.Info()<<"Resolving domain: "<<dname;
@@ -183,14 +184,14 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(ILogger& logger)
         if(udns_ctx==nullptr)
         {
             logger.Error()<<"Failed to create new UDNS context: "<<strerror(errno);
-            return FailWithDisclaim();
+            return FailWithDisclaim(state);
         }
 
         if(dns_open(udns_ctx)<0)
         {
             logger.Error()<<"dns_open failed: "<<strerror(errno);
             dns_free(udns_ctx);
-            return FailWithDisclaim();
+            return FailWithDisclaim(state);
         }
 
         auto ans6=dns_resolve_a6(udns_ctx, dname.c_str(), config.GetUDNSSearchDomainIsSet()?0:DNS_NOSRCH);
@@ -229,18 +230,21 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(ILogger& logger)
     else
     {
         logger.Warning()<<"Client handshake failed, unsupported address type: "<<atyp;
-        return FailWithDisclaim();
+        return FailWithDisclaim(state);
     }
 
     //read port
     if(clientHelper.ReadData(buff,2,false)<2)
-        return FailWithDisclaim();
+        return FailWithDisclaim(state);
     uint16_t nsport;
     std::memcpy(reinterpret_cast<void*>(&nsport),buff,sizeof(uint16_t));
     auto port=ntohs(nsport);
 
     //check CMD
-    unsigned char rsv=0x01;
+    unsigned char rep=0x01;
+    auto bindEP=ImmutableStorage<IPEndpoint>(IPEndpoint());
+    auto finalState=ImmutableStorage<State>(state);
+
     if(cmd==0x01) //connect
     {
         //try connect to any ip-address from destIPs, create new socket claim
@@ -255,7 +259,7 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(ILogger& logger)
                 logger.Warning()<<"Failed to setup SO_LINGER on outgoing connection"<<strerror(errno);
                 if(close(target)!=0)
                     logger.Error()<<"Failed to perform proper socket close after failed setup: "<<strerror(errno);
-                return FailWithDisclaim();
+                return FailWithDisclaim(finalState.Get());
             }
 
             int cr=-1;
@@ -279,18 +283,37 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(ILogger& logger)
                 auto error=errno;
                 logger.Warning()<<"Failed to connect "<<ip<<" with error: "<<strerror(error);
                 if(error==ECONNREFUSED)
-                    rsv=0x05;
+                    rep=0x05;
                 if(error==ENETUNREACH)
-                    rsv=0x03;
+                    rep=0x03;
                 if(close(target)!=0)
                     logger.Error()<<"Failed to perform proper socket close after connection failure: "<<strerror(errno);
-                return FailWithDisclaim();
+                return FailWithDisclaim(finalState.Get());
             }
             else
             {
-                rsv=0;
-                //TODO: create new socket claim, update state
+                rep=0;
                 //get BND.ADDR and BND.PORT
+                sockaddr sa;
+                socklen_t sl=sizeof(sa);
+                if(getsockname(target, &sa, &sl)<0)
+                {
+                    logger.Error()<<"Call to getsockname failed: "<<strerror(errno);
+                    if(close(target)!=0)
+                        logger.Error()<<"Failed to perform proper socket close after getsockname failure: "<<strerror(errno);
+                    return FailWithDisclaim(finalState.Get());
+                }
+                IPEndpoint ep(&sa);
+                if(!ep.address.isValid)
+                {
+                    logger.Error()<<"Invalid bind address discovered with getsockname";
+                    if(close(target)!=0)
+                        logger.Error()<<"Failed to perform proper socket close after failure to decode bind ip-address: "<<strerror(errno);
+                    return FailWithDisclaim(finalState.Get());
+                }
+                bindEP.Set(ep);
+                //create new socket claim, update state
+                finalState.Set(finalState.Get().AddSocketWithClaim(target));
                 break;
             }
         }
@@ -298,12 +321,29 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(ILogger& logger)
     else
     {
         logger.Warning()<<"Command is not supported: "<<cmd;
-        rsv=0x07;
+        rep=0x07;
     }
 
-    //TODO: send response
+    //create client response
+    buff[0]=0x05; //ver
+    buff[1]=rep; //rep
+    buff[2]=0x00; //rsv
+    //TODO: find wether domain name type is supported could be used here
+    auto ep=bindEP.Get();
+    buff[3]=ep.address.isV6?0x04:0x01;
+    auto respLen=ep.ToRawBuff(buff+4)+4;
 
-    return std::unique_ptr<const IJobResult>(new ModeConnectJobResult(state));
+    //send client response
+    if(clientHelper.WriteData(buff,respLen)<respLen)
+    {
+        logger.Error()<<"Failed to send response to client";
+        return FailWithDisclaim(finalState.Get());
+    }
+
+    if(cmd==0x01)
+        return std::unique_ptr<const IJobResult>(new ModeConnectJobResult(finalState.Get().DisclaimAllSockets()));
+    else
+        return FailWithDisclaim(finalState.Get());
 }
 
 void Job_ClientHandshake::Cancel(ILogger& logger)
