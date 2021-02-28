@@ -129,7 +129,7 @@ int TCPSocketHelper::WriteData(const unsigned char* const target, const int len)
     return static_cast<int>(dataWritten);
 }
 
-bool SocketClaimsCleaner::CloseUnclaimedSockets(std::shared_ptr<ILogger>& logger, const std::vector<SocketClaimState> &claimStates)
+bool SocketClaimsCleaner::CloseUnclaimedSockets(std::shared_ptr<ILogger> &logger, const std::vector<SocketClaimState> &claimStates)
 {
     bool result=true;
     for(auto &cState:claimStates)
