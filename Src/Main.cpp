@@ -10,6 +10,7 @@
 #include "User.h"
 #include "Config.h"
 
+#include <memory>
 #include <vector>
 #include <unordered_map>
 #include <string>
@@ -177,9 +178,9 @@ int main (int argc, char *argv[])
     JobDispatcher jobDispatcher(dispLogger,logFactory,jobWorkerFactory,jobFactory,messageBroker,config);
     messageBroker.AddSubscriber(jobDispatcher);
 
-    std::vector<TCPServerListener*> serverListeners;
-    for(auto addr:config.GetListenAddrs())
-        serverListeners.push_back(new TCPServerListener(listenerLogger,messageBroker,config,addr));
+    std::vector<std::shared_ptr<TCPServerListener>> serverListeners;
+    for(auto &addr:config.GetListenAddrs())
+        serverListeners.push_back(std::make_shared<TCPServerListener>(listenerLogger,messageBroker,config,addr));
 
     //create sigset_t struct with signals
     sigset_t sigset;
@@ -230,8 +231,6 @@ int main (int argc, char *argv[])
     //wait for background workers shutdown complete
     for(auto &listener:serverListeners)
         listener->Shutdown();
-    for(auto &listener:serverListeners)
-        delete listener;
     jobDispatcher.Shutdown();
 
     return  0;

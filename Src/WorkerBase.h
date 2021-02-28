@@ -3,12 +3,14 @@
 
 #include "thread"
 #include "mutex"
+#include <memory>
 
 class WorkerBase
 {
     private:
         std::mutex workerLock;
-        std::thread* worker = nullptr;
+        std::shared_ptr<std::thread> worker = std::shared_ptr<std::thread>();
+        bool workerStarted = false;
     protected:
         virtual void Worker() = 0; // main worker's logic, by default will be started in a separate thread created by Startup method
         virtual void OnShutdown() = 0; // must be threadsafe and notify Worker to stop, by default it will be called from Shutdown that itself may be called from any thread

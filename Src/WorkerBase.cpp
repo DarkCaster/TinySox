@@ -2,29 +2,29 @@
 
 bool WorkerBase::Startup()
 {
-    const std::lock_guard<std::mutex> lock(workerLock);
-    if(worker!=nullptr)
+    const std::lock_guard<std::mutex> guard(workerLock);
+    if(workerStarted)
         return false;
-    worker=new std::thread(&WorkerBase::Worker,this);
+    worker=std::make_shared<std::thread>(std::thread(&WorkerBase::Worker,this));
+    workerStarted=true;
     return true;
 }
 
 bool WorkerBase::Shutdown()
 {
-    const std::lock_guard<std::mutex> lock(workerLock);
-    if(worker==nullptr)
+    const std::lock_guard<std::mutex> guard(workerLock);
+    if(!workerStarted)
         return false;
     OnShutdown();
     worker->join();
-    delete worker;
-    worker=nullptr;
+    workerStarted=false;
     return true;
 }
 
 bool WorkerBase::RequestShutdown()
 {
-    const std::lock_guard<std::mutex> lock(workerLock);
-    if(worker==nullptr)
+    const std::lock_guard<std::mutex> guard(workerLock);
+    if(!workerStarted)
         return false;
     OnShutdown();
     return true;
