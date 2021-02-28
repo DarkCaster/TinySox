@@ -5,12 +5,12 @@
 #include "IJobResult.h"
 
 #include <vector>
+#include <memory>
 
 class IJobFactory
 {
     public:
-        virtual void DestroyJob(IJob* const target) = 0;
-        virtual std::vector<IJob*> CreateJobsFromResult(const IJobResult &source) = 0;
+        virtual std::vector<std::shared_ptr<IJob>> CreateJobsFromResult(const IJobResult &source) = 0;
 };
 
 #endif //IJOB_FACTORY_H

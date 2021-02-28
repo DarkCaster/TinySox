@@ -12,7 +12,6 @@ class JobTerminalResult final: public IJobTerminalResult{ public: JobTerminalRes
 class ModeConnectJobResult final: public IModeConnectJobResult{ public: ModeConnectJobResult(const State &_state):IModeConnectJobResult(_state){} };
 
 Job_ClientHandshake::Job_ClientHandshake(const State &_state, const IConfig &_config):
-    IJob(J_HANDSHAKE),
     config(_config),
     state(_state.ClaimAllSockets())
 {

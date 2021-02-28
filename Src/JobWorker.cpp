@@ -7,11 +7,11 @@ JobWorker::JobWorker(std::shared_ptr<ILogger> &_logger, IMessageSender &_sender)
     IJobWorker(_sender),
     logger(_logger)
 {
-    job=nullptr;
+    job=std::shared_ptr<IJob>();
     jobSet=false;
 }
 
-bool JobWorker::SetJob(IJob* _job)
+bool JobWorker::SetJob(std::shared_ptr<IJob> &_job)
 {
     {
         std::lock_guard<std::mutex> lock(jobLock);

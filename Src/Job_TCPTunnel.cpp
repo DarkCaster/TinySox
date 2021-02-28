@@ -4,7 +4,6 @@
 class JobTerminalResult final: public IJobTerminalResult{ public: JobTerminalResult(const State &_state):IJobTerminalResult(_state){} };
 
 Job_TCPTunnel::Job_TCPTunnel(const State &_state, const IConfig &_config, const bool _isReader):
-    IJob(J_CONNECT_TUNNEL),
     config(_config),
     state(_state.ClaimAllSockets()),
     isReader(_isReader)

@@ -42,7 +42,7 @@ bool JobDispatcher::_SpawnWorkers(int count)
         auto newWorker=workerFactory.CreateWorker(workerLogger,sender);
         if(!newWorker->Startup())
             return false;
-        freeWorkers.push_back(WorkerInstance{newWorker,nullptr});
+        freeWorkers.push_back(WorkerInstance{newWorker});
     }
     return true;
 }
@@ -53,20 +53,18 @@ void JobDispatcher::_DestroyWorkerInstance(JobDispatcher::WorkerInstance &instan
     instance.worker->Shutdown();
     //destroy all dynamically allocated stuff
     workerFactory.DestroyWorker(instance.worker);
-    jobFactory.DestroyJob(instance.job);
 }
 
-JobDispatcher::WorkerInstance JobDispatcher::_CreateWorkerInstance(IJob *job)
+JobDispatcher::WorkerInstance JobDispatcher::_CreateWorkerInstance()
 {
     if(freeWorkers.size()<1)
     {
         if(!_SpawnWorkers(1))
             HandleError(errno,"Failed to spawn new worker!");
-        return WorkerInstance{nullptr,nullptr};
+        return WorkerInstance{nullptr};
     }
     auto result=freeWorkers.front();
     freeWorkers.pop_front();
-    result.job=job;
     return result;
 }
 
@@ -128,7 +126,8 @@ void JobDispatcher::Worker()
         const std::lock_guard<std::mutex> guard(freeLock);
         for(auto &instance:freeWorkers)
         {
-            instance.worker->SetJob(nullptr);
+            std::shared_ptr<IJob> emptyJob;
+            instance.worker->SetJob(emptyJob);
             instance.worker->RequestShutdown();
         }
         for(auto &instance:freeWorkers)
@@ -203,18 +202,18 @@ void JobDispatcher::OnMessageInternal(const void* const source, const IJobComple
     }
 
     //create new jobs based on previous jobResult and assign every job to new worker
-    for(auto job:jobFactory.CreateJobsFromResult(message.result))
+    for(auto &job:jobFactory.CreateJobsFromResult(message.result))
     {
         //logger->Info()<<"Preparing worker for new job";
         //get free worker or create a new one + all helper stuff
         std::lock_guard<std::mutex> freeGuard(freeLock);
-        auto newInstance=_CreateWorkerInstance(job);
+        auto newInstance=_CreateWorkerInstance();
         if(newInstance.worker==nullptr)
             return; //error creating new worker
         //move worker instance to the activeWorkers
         std::lock_guard<std::mutex> activeGuard(activeLock);
         activeWorkers.insert({newInstance.worker,newInstance});
         //assign new job and start it's execution (at worker's thread)
-        newInstance.worker->SetJob(newInstance.job);
+        newInstance.worker->SetJob(job);
     }
 }

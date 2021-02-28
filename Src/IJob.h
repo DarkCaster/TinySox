@@ -6,18 +6,10 @@
 
 #include <memory>
 
-enum JobType
-{
-    J_HANDSHAKE,
-    J_CONNECT_TUNNEL,
-};
 
 class IJob
 {
-    protected:
-        IJob(const JobType _jobType):jobType(_jobType){};
     public:
-        const JobType jobType;
         virtual std::unique_ptr<const IJobResult> Execute(std::shared_ptr<ILogger> logger) = 0;
         virtual void Cancel(std::shared_ptr<ILogger> logger) = 0;
 };

@@ -8,6 +8,7 @@
 
 #include <mutex>
 #include <condition_variable>
+#include <memory>
 
 class JobWorker final : public IJobWorker
 {
@@ -15,13 +16,13 @@ class JobWorker final : public IJobWorker
         std::shared_ptr<ILogger> logger;
         std::condition_variable jobTrigger;
         std::mutex jobLock;
-        IJob *job;
+        std::shared_ptr<IJob> job;
         bool jobSet;
     public:
         JobWorker(std::shared_ptr<ILogger> &logger, IMessageSender &sender);
     protected:
         //IJobWorker
-        bool SetJob(IJob *job) final;
+        bool SetJob(std::shared_ptr<IJob> &job) final;
         //worker base
         void Worker() final;
         void OnShutdown() final;

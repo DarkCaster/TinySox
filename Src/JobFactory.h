@@ -8,6 +8,7 @@
 #include "IJobResult.h"
 
 #include <vector>
+#include <memory>
 
 class JobFactory final : public IJobFactory
 {
@@ -16,8 +17,7 @@ class JobFactory final : public IJobFactory
         const IConfig &config;
     public:
         JobFactory(std::shared_ptr<ILogger> &logger, const IConfig &config);
-        void DestroyJob(IJob* const target) final;
-        std::vector<IJob*> CreateJobsFromResult(const IJobResult &source) final;
+        std::vector<std::shared_ptr<IJob>> CreateJobsFromResult(const IJobResult &source) final;
 };
 
 #endif //JOB_FACTORY_H

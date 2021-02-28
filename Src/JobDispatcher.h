@@ -33,7 +33,7 @@ class JobDispatcher final: public IMessageSubscriber, public WorkerBase
         std::atomic<bool> shutdownPending;
         std::atomic<int> msgProcCount;
 
-        struct WorkerInstance { IJobWorker* worker; IJob* job; };
+        struct WorkerInstance { IJobWorker* worker; };
         unsigned long workerID;
 
         std::deque<WorkerInstance> freeWorkers;
@@ -51,7 +51,7 @@ class JobDispatcher final: public IMessageSubscriber, public WorkerBase
         //non interlocked private methods, may need to be locked outside
         bool _SpawnWorkers(int count);
         void _DestroyWorkerInstance(WorkerInstance &instance);
-        WorkerInstance _CreateWorkerInstance(IJob *job);
+        WorkerInstance _CreateWorkerInstance();
     public:
         JobDispatcher(std::shared_ptr<ILogger> &dispatcherLogger, ILoggerFactory &workerLoggerFactory, IJobWorkerFactory &workerFactory, IJobFactory &jobFactory, IMessageSender &sender, const IConfig &config);
         //methods from WorkerBase
