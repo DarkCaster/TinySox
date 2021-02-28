@@ -1,9 +1,10 @@
 #ifndef JOB_WORKER_H
 #define JOB_WORKER_H
 
-#include "IMessageSender.h"
 #include "IJobWorker.h"
 #include "ILogger.h"
+#include "IJob.h"
+#include "IMessageSender.h"
 
 #include <mutex>
 #include <condition_variable>

@@ -1,10 +1,13 @@
 #ifndef JOB_FACTORY_H
 #define JOB_FACTORY_H
 
+#include "IJobFactory.h"
 #include "ILogger.h"
 #include "IConfig.h"
 #include "IJob.h"
-#include "IJobFactory.h"
+#include "IJobResult.h"
+
+#include <vector>
 
 class JobFactory final : public IJobFactory
 {
