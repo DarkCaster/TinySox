@@ -2,6 +2,8 @@
 #define STDIOLOGGER_H
 
 #include "ILogger.h"
+#include "LogWriter.h"
+
 #include <mutex>
 #include <atomic>
 #include <string>

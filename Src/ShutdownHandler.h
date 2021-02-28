@@ -2,6 +2,7 @@
 #define SHUTDOWNHANDLER_H
 
 #include "IMessageSubscriber.h"
+#include "IMessage.h"
 
 #include <atomic>
 

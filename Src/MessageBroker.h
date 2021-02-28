@@ -3,6 +3,7 @@
 
 #include "IMessageSender.h"
 #include "IMessageSubscriber.h"
+#include "IMessage.h"
 
 #include <thread>
 #include <mutex>

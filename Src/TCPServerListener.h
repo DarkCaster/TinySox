@@ -7,6 +7,7 @@
 #include "IMessageSender.h"
 #include "IPEndpoint.h"
 
+#include <string>
 #include <atomic>
 #include <sys/time.h>
 
