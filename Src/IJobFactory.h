@@ -3,7 +3,6 @@
 
 #include "IJob.h"
 #include "IJobResult.h"
-#include "ILogger.h"
 
 #include <vector>
 

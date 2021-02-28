@@ -1,7 +1,6 @@
 #ifndef IMESSAGE_H
 #define IMESSAGE_H
 
-#include <vector>
 #include "IJobResult.h"
 
 enum MsgType

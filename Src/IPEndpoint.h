@@ -3,6 +3,9 @@
 
 #include "IPAddress.h"
 
+#include <iostream>
+#include <sys/socket.h>
+
 class IPEndpoint
 {
     public:

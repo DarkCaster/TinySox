@@ -6,9 +6,8 @@
 
 enum JobResultType
 {
-    JR_TERMINAL,
+    JR_TERMINAL, //no new jobs will be spawned from that result
     JR_NEW_CLIENT,
-    //JR_CLIENT_HANDSHAKE_FAILED,
     JR_CLIENT_MODE_CONNECT,
     //JR_CLIENT_MODE_BIND, //not supported currently
     //JR_CLIENT_MODE_UDP, //not supported currently

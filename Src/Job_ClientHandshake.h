@@ -3,12 +3,11 @@
 
 #include "IJob.h"
 #include "IJobResult.h"
-#include "State.h"
-#include "Config.h"
+#include "IConfig.h"
 #include "ILogger.h"
+#include "State.h"
 
 #include <atomic>
-#include <vector>
 #include <memory>
 
 class Job_ClientHandshake final : public IJob
