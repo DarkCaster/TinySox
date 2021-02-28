@@ -33,7 +33,7 @@ std::unique_ptr<const IJobResult> SendAuthFailWithDisclaim(const State &state, T
     return std::make_unique<const JobTerminalResult>(state.DisclaimAllSockets());
 }
 
-std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(ILogger& logger)
+std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(ILogger &logger)
 {
     if(state.socketClaims.size()!=1)
     {
@@ -347,7 +347,7 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(ILogger& logger)
         return FailWithDisclaim(finalState.Get());
 }
 
-void Job_ClientHandshake::Cancel(ILogger& logger)
+void Job_ClientHandshake::Cancel(ILogger &logger)
 {
     logger.Warning()<<"Cancelling client handshake job";
     cancelled.store(true);
