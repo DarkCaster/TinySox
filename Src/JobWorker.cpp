@@ -3,7 +3,7 @@
 
 class JobCompleteMessage final : public IJobCompleteMessage { public: JobCompleteMessage(const IJobResult &_result):IJobCompleteMessage(_result){} };
 
-JobWorker::JobWorker(ILogger &_logger, IMessageSender &_sender):
+JobWorker::JobWorker(std::shared_ptr<ILogger> &_logger, IMessageSender &_sender):
     IJobWorker(_sender),
     logger(_logger)
 {

@@ -1,7 +1,7 @@
 #include "JobWorkerFactory.h"
 #include "JobWorker.h"
 
-IJobWorker* JobWorkerFactory::CreateWorker(ILogger &logger, IMessageSender &sender)
+IJobWorker* JobWorkerFactory::CreateWorker(std::shared_ptr<ILogger> &logger, IMessageSender &sender)
 {
     return new JobWorker(logger,sender);
 }

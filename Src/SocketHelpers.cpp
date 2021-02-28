@@ -8,7 +8,7 @@
 
 //TODO: needs refactor, maybe, read/write data from/to socket to/from streams ?
 //TODO: optimize reading and wtiting logic, use reading/writing in async manner to eliminate unneded work while awaiting for data
-TCPSocketHelper::TCPSocketHelper(ILogger &_logger, const IConfig &_config, const int _fd, std::atomic<bool> &_cancel):
+TCPSocketHelper::TCPSocketHelper(std::shared_ptr<ILogger> &_logger, const IConfig &_config, const int _fd, std::shared_ptr<std::atomic<bool> >& _cancel):
     logger(_logger),
     config(_config),
     fd(_fd),
@@ -24,7 +24,7 @@ int TCPSocketHelper::ReadData(unsigned char * const target, const int len, const
         return -1;
 
     auto dataLeft=len;
-    while(!cancel.load())
+    while(!cancel->load())
     {
         //wait for data
         fd_set set;
@@ -39,9 +39,9 @@ int TCPSocketHelper::ReadData(unsigned char * const target, const int len, const
         {
             auto error=errno;
             if(error==EINTR)//interrupted by signal
-                logger.Warning()<<"Reading (select) interrupted by signal";
+                logger->Warning()<<"Reading (select) interrupted by signal";
             else
-                logger.Warning()<<"Reading (select) failed with error: "<<strerror(error);
+                logger->Warning()<<"Reading (select) failed with error: "<<strerror(error);
             readAllowed=false;
             return -1;
         }
@@ -50,7 +50,7 @@ int TCPSocketHelper::ReadData(unsigned char * const target, const int len, const
         auto dataRead=read(fd,reinterpret_cast<void*>(target+len-dataLeft),dataLeft);
         if(dataRead==0)
         {
-            logger.Info()<<"Socket has been shutdown (read)"<<std::endl;
+            logger->Info()<<"Socket has been shutdown (read)"<<std::endl;
             readAllowed=false;
             return len-dataLeft; //return how much we read so far
         }
@@ -58,9 +58,9 @@ int TCPSocketHelper::ReadData(unsigned char * const target, const int len, const
         {
             auto error=errno;
             if(error==EINTR)//interrupted by signal
-                logger.Warning()<<"Reading interrupted by signal";
+                logger->Warning()<<"Reading interrupted by signal";
             else
-                logger.Warning()<<"Reading failed with error: "<<strerror(error);
+                logger->Warning()<<"Reading failed with error: "<<strerror(error);
             readAllowed=false;
             return -1;
         }
@@ -71,7 +71,7 @@ int TCPSocketHelper::ReadData(unsigned char * const target, const int len, const
             return len;
     }
 
-    logger.Warning()<<"Reading cancelled";
+    logger->Warning()<<"Reading cancelled";
     return -1;
 }
 
@@ -81,7 +81,7 @@ int TCPSocketHelper::WriteData(const unsigned char* const target, const int len)
         return -1;
 
     int crv=0;
-    while(!cancel.load() && crv==0)
+    while(!cancel->load() && crv==0)
     {
         //wait for data
         fd_set set;
@@ -94,7 +94,7 @@ int TCPSocketHelper::WriteData(const unsigned char* const target, const int len)
 
     if(crv==0)
     {
-        logger.Warning()<<"Writing cancelled";
+        logger->Warning()<<"Writing cancelled";
         return -1;
     }
 
@@ -102,9 +102,9 @@ int TCPSocketHelper::WriteData(const unsigned char* const target, const int len)
     {
         auto error=errno;
         if(error==EINTR)//interrupted by signal
-            logger.Warning()<<"Writing (select) interrupted by signal";
+            logger->Warning()<<"Writing (select) interrupted by signal";
         else
-            logger.Warning()<<"Writing (select) failed with error: "<<strerror(error);
+            logger->Warning()<<"Writing (select) failed with error: "<<strerror(error);
         writeAllowed=false;
         return -1;
     }
@@ -113,7 +113,7 @@ int TCPSocketHelper::WriteData(const unsigned char* const target, const int len)
     auto dataWritten=write(fd,reinterpret_cast<const void*>(target),len);
     if(dataWritten==0)
     {
-        logger.Info()<<"Socket has been shutdown (write)"<<std::endl;
+        logger->Info()<<"Socket has been shutdown (write)"<<std::endl;
         writeAllowed=false;
         return -1;
     }
@@ -121,15 +121,15 @@ int TCPSocketHelper::WriteData(const unsigned char* const target, const int len)
     {
         auto error=errno;
         if(error==EINTR)//interrupted by signal
-            logger.Warning()<<"Writing interrupted by signal";
+            logger->Warning()<<"Writing interrupted by signal";
         else
-            logger.Warning()<<"Writing failed with error: "<<strerror(error);
+            logger->Warning()<<"Writing failed with error: "<<strerror(error);
         writeAllowed=false;
     }
     return static_cast<int>(dataWritten);
 }
 
-bool SocketClaimsCleaner::CloseUnclaimedSockets(ILogger &logger, const std::vector<SocketClaimState> &claimStates)
+bool SocketClaimsCleaner::CloseUnclaimedSockets(std::shared_ptr<ILogger>& logger, const std::vector<SocketClaimState> &claimStates)
 {
     bool result=true;
     for(auto &cState:claimStates)
@@ -137,7 +137,7 @@ bool SocketClaimsCleaner::CloseUnclaimedSockets(ILogger &logger, const std::vect
         {
             if(close(cState.socketFD)!=0)
             {
-                logger.Error()<<"Failed to perform socket close: "<<strerror(errno);
+                logger->Error()<<"Failed to perform socket close: "<<strerror(errno);
                 result=false;
             }
         }

@@ -33,7 +33,7 @@ class JobDispatcher final: public IMessageSubscriber, public WorkerBase
         std::atomic<bool> shutdownPending;
         std::atomic<int> msgProcCount;
 
-        struct WorkerInstance { IJobWorker* worker; std::shared_ptr<ILogger> logger; IJob* job; };
+        struct WorkerInstance { IJobWorker* worker; IJob* job; };
         unsigned long workerID;
 
         std::deque<WorkerInstance> freeWorkers;

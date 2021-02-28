@@ -7,18 +7,19 @@
 
 #include <atomic>
 #include <vector>
+#include <memory>
 
 class TCPSocketHelper
 {
     private:
-        ILogger &logger;
+        std::shared_ptr<ILogger> logger;
         const IConfig &config;
         const int fd;
-        std::atomic<bool> &cancel;
+        std::shared_ptr<std::atomic<bool>> cancel;
         bool readAllowed;
         bool writeAllowed;
     public:
-        TCPSocketHelper(ILogger &logger, const IConfig &config, const int fd, std::atomic<bool> &cancel);
+        TCPSocketHelper(std::shared_ptr<ILogger> &logger, const IConfig &config, const int fd, std::shared_ptr<std::atomic<bool>> &cancel);
         int ReadData(unsigned char * const target, const int len, const bool allowPartial);
         int WriteData(const unsigned char * const target, const int len);
 };
@@ -26,7 +27,7 @@ class TCPSocketHelper
 class SocketClaimsCleaner
 {
     public:
-        static bool CloseUnclaimedSockets(ILogger &logger, const std::vector<SocketClaimState> &claimStates);
+        static bool CloseUnclaimedSockets(std::shared_ptr<ILogger> &logger, const std::vector<SocketClaimState> &claimStates);
 };
 
 #endif //SOCKET_HELPERS_H

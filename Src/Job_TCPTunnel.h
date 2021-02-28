@@ -17,12 +17,12 @@ class Job_TCPTunnel final : public IJob
         const IConfig &config;
         const State state;
         const bool isReader;
-        std::atomic<bool> cancelled;
+        std::shared_ptr<std::atomic<bool>> cancelled;
     public:
         Job_TCPTunnel(const State &state, const IConfig &config, const bool isReader);
         //from IJob
-        std::unique_ptr<const IJobResult> Execute(ILogger &logger) final;
-        void Cancel(ILogger &logger) final;
+        std::unique_ptr<const IJobResult> Execute(std::shared_ptr<ILogger> logger) final;
+        void Cancel(std::shared_ptr<ILogger> logger) final;
 };
 
 

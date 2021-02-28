@@ -173,7 +173,7 @@ int main (int argc, char *argv[])
 
     //create instances for main logic
     JobWorkerFactory jobWorkerFactory;
-    JobFactory jobFactory(*jobFactoryLogger,config);
+    JobFactory jobFactory(jobFactoryLogger,config);
     JobDispatcher jobDispatcher(*dispLogger,logFactory,jobWorkerFactory,jobFactory,messageBroker,config);
     messageBroker.AddSubscriber(jobDispatcher);
 

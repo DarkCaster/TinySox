@@ -39,10 +39,10 @@ bool JobDispatcher::_SpawnWorkers(int count)
         std::ostringstream swName;
         swName << "Worker#" << workerID++;
         auto workerLogger=loggerFactory.CreateLogger(swName.str());
-        auto newWorker=workerFactory.CreateWorker(*workerLogger,sender);
+        auto newWorker=workerFactory.CreateWorker(workerLogger,sender);
         if(!newWorker->Startup())
             return false;
-        freeWorkers.push_back(WorkerInstance{newWorker,workerLogger,nullptr});
+        freeWorkers.push_back(WorkerInstance{newWorker,nullptr});
     }
     return true;
 }
@@ -62,7 +62,7 @@ JobDispatcher::WorkerInstance JobDispatcher::_CreateWorkerInstance(IJob *job)
     {
         if(!_SpawnWorkers(1))
             HandleError(errno,"Failed to spawn new worker!");
-        return WorkerInstance{nullptr,nullptr,nullptr};
+        return WorkerInstance{nullptr,nullptr};
     }
     auto result=freeWorkers.front();
     freeWorkers.pop_front();

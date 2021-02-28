@@ -8,7 +8,7 @@
 class IJobWorkerFactory
 {
     public:
-        virtual IJobWorker* CreateWorker(ILogger &logger, IMessageSender &sender) = 0;
+        virtual IJobWorker* CreateWorker(std::shared_ptr<ILogger> &logger, IMessageSender &sender) = 0;
         virtual void DestroyWorker(IJobWorker* const target) = 0;
 };
 

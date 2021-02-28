@@ -16,7 +16,8 @@ Job_ClientHandshake::Job_ClientHandshake(const State &_state, const IConfig &_co
     config(_config),
     state(_state.ClaimAllSockets())
 {
-    cancelled.store(false);
+    cancelled=std::make_shared<std::atomic<bool>>();
+    cancelled->store(false);
 }
 
 static std::unique_ptr<const IJobResult> FailWithDisclaim(const State &state)
@@ -33,11 +34,11 @@ std::unique_ptr<const IJobResult> SendAuthFailWithDisclaim(const State &state, T
     return std::make_unique<const JobTerminalResult>(state.DisclaimAllSockets());
 }
 
-std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(ILogger &logger)
+std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(std::shared_ptr<ILogger> logger)
 {
     if(state.socketClaims.size()!=1)
     {
-        logger.Error()<<"Job_ClientHandshake: invalid configuration";
+        logger->Error()<<"Job_ClientHandshake: invalid configuration";
         return FailWithDisclaim(state);
     }
 
@@ -50,7 +51,7 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(ILogger &logger)
         return FailWithDisclaim(state);
     if(buff[0]!=0x05)
     {
-        logger.Warning()<<"Client handshake failed, invalid protocol version: "<<static_cast<int>(buff[0]);
+        logger->Warning()<<"Client handshake failed, invalid protocol version: "<<static_cast<int>(buff[0]);
         return FailWithDisclaim(state);
     }
 
@@ -73,7 +74,7 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(ILogger &logger)
 
     if(selectedAuthMethod<0)
     {
-        logger.Warning()<<"Client handshake failed, no supported auth method was provided by client";
+        logger->Warning()<<"Client handshake failed, no supported auth method was provided by client";
         buff[0]=0x05;
         buff[1]=0xFF;
         clientHelper.WriteData(buff,2);
@@ -86,7 +87,7 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(ILogger &logger)
     buff[1]=static_cast<unsigned char>(selectedAuthMethod);
     if(clientHelper.WriteData(buff,2)!=2)
     {
-        logger.Warning()<<"Client handshake failed, clien disconnected (auth method selection)";
+        logger->Warning()<<"Client handshake failed, clien disconnected (auth method selection)";
         return FailWithDisclaim(state);
     }
 
@@ -97,7 +98,7 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(ILogger &logger)
             return FailWithDisclaim(state);
         if(buff[0]!=0x01)
         {
-            logger.Warning()<<"Client handshake failed, invalid auth version: "<<static_cast<int>(buff[0]);
+            logger->Warning()<<"Client handshake failed, invalid auth version: "<<static_cast<int>(buff[0]);
             return SendAuthFailWithDisclaim(state,clientHelper);
         }
         //username
@@ -118,7 +119,7 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(ILogger &logger)
         auto user=config.GetUser(username);
         if(user==nullptr || user->password!=password)
         {
-            logger.Warning()<<"Client handshake failed, login failed";
+            logger->Warning()<<"Client handshake failed, login failed";
             return SendAuthFailWithDisclaim(state,clientHelper);
         }
         //confirm login
@@ -135,7 +136,7 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(ILogger &logger)
         return FailWithDisclaim(state);
     if(buff[0]!=0x05)
     {
-        logger.Warning()<<"Client handshake failed, invalid protocol version: "<<static_cast<int>(buff[0]);
+        logger->Warning()<<"Client handshake failed, invalid protocol version: "<<static_cast<int>(buff[0]);
         return FailWithDisclaim(state);
     }
 
@@ -156,7 +157,7 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(ILogger &logger)
             return FailWithDisclaim(state);
         IPAddress v4addr(buff,IPV4_ADDR_LEN);
         if(!v4addr.isValid)
-            logger.Warning()<<"Invalid ipv4 address provided by client!";
+            logger->Warning()<<"Invalid ipv4 address provided by client!";
         else
             destIPs.push_back(v4addr);
     }
@@ -166,7 +167,7 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(ILogger &logger)
             return FailWithDisclaim(state);
         IPAddress v6addr(buff,IPV6_ADDR_LEN);
         if(!v6addr.isValid)
-            logger.Warning()<<"Invalid ipv6 address provided by client!";
+            logger->Warning()<<"Invalid ipv6 address provided by client!";
         else
             destIPs.push_back(v6addr);
     }
@@ -180,17 +181,17 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(ILogger &logger)
             return FailWithDisclaim(state);
         std::string dname(reinterpret_cast<char*>(buff),dnameLen);
 
-        logger.Info()<<"Resolving domain: "<<dname;
+        logger->Info()<<"Resolving domain: "<<dname;
         auto udns_ctx=dns_new(config.GetBaseUDNSContext());
         if(udns_ctx==nullptr)
         {
-            logger.Error()<<"Failed to create new UDNS context: "<<strerror(errno);
+            logger->Error()<<"Failed to create new UDNS context: "<<strerror(errno);
             return FailWithDisclaim(state);
         }
 
         if(dns_open(udns_ctx)<0)
         {
-            logger.Error()<<"dns_open failed: "<<strerror(errno);
+            logger->Error()<<"dns_open failed: "<<strerror(errno);
             dns_free(udns_ctx);
             return FailWithDisclaim(state);
         }
@@ -201,7 +202,7 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(ILogger &logger)
             {
                 IPAddress v6Addr(&(ans6->dnsa6_addr[addr_idx]),IPV6_ADDR_LEN);
                 if(!v6Addr.isValid)
-                    logger.Warning()<<"udns IN AAAA query to host "<<dname<<" produced invalid ipv6 address!";
+                    logger->Warning()<<"udns IN AAAA query to host "<<dname<<" produced invalid ipv6 address!";
                 else
                     destIPs.push_back(v6Addr);
             }
@@ -214,7 +215,7 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(ILogger &logger)
             {
                 IPAddress v4Addr(&(ans4->dnsa4_addr[addr_idx]),IPV4_ADDR_LEN);
                 if(!v4Addr.isValid)
-                    logger.Warning()<<"udns IN A query to host "<<dname<<" produced invalid ipv4 address!";
+                    logger->Warning()<<"udns IN A query to host "<<dname<<" produced invalid ipv4 address!";
                 else
                     destIPs.push_back(v4Addr);
             }
@@ -226,7 +227,7 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(ILogger &logger)
     }
     else
     {
-        logger.Warning()<<"Client handshake failed, unsupported address type: "<<atyp;
+        logger->Warning()<<"Client handshake failed, unsupported address type: "<<atyp;
         return FailWithDisclaim(state);
     }
 
@@ -245,7 +246,7 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(ILogger &logger)
     if(cmd==0x01) //connect
     {
         if(destIPs.empty())
-            logger.Warning()<<"No valid ip addresses to connect";
+            logger->Warning()<<"No valid ip addresses to connect";
 
         //try connect to any ip-address from destIPs, create new socket claim
         for(auto &ip:destIPs)
@@ -256,9 +257,9 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(ILogger &logger)
             linger tLinger={1,0};
             if (setsockopt(target, SOL_SOCKET, SO_LINGER, &tLinger, sizeof(linger))!=0)
             {
-                logger.Warning()<<"Failed to setup SO_LINGER on outgoing connection"<<strerror(errno);
+                logger->Warning()<<"Failed to setup SO_LINGER on outgoing connection"<<strerror(errno);
                 if(close(target)!=0)
-                    logger.Error()<<"Failed to perform proper socket close after failed setup: "<<strerror(errno);
+                    logger->Error()<<"Failed to perform proper socket close after failed setup: "<<strerror(errno);
                 return FailWithDisclaim(finalState.Get());
             }
 
@@ -281,35 +282,35 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(ILogger &logger)
             if(cr<0)
             {
                 auto error=errno;
-                logger.Warning()<<"Failed to connect "<<ip<<" with error: "<<strerror(error);
+                logger->Warning()<<"Failed to connect "<<ip<<" with error: "<<strerror(error);
                 if(error==ECONNREFUSED)
                     rep=0x05;
                 if(error==ENETUNREACH)
                     rep=0x03;
                 if(close(target)!=0)
-                    logger.Error()<<"Failed to perform proper socket close after connection failure: "<<strerror(errno);
+                    logger->Error()<<"Failed to perform proper socket close after connection failure: "<<strerror(errno);
                 return FailWithDisclaim(finalState.Get());
             }
             else
             {
                 rep=0x00;
-                logger.Info()<<"Connected to: "<<ip;
+                logger->Info()<<"Connected to: "<<ip;
                 //get BND.ADDR and BND.PORT
                 sockaddr sa;
                 socklen_t sl=sizeof(sa);
                 if(getsockname(target, &sa, &sl)<0)
                 {
-                    logger.Error()<<"Call to getsockname failed: "<<strerror(errno);
+                    logger->Error()<<"Call to getsockname failed: "<<strerror(errno);
                     if(close(target)!=0)
-                        logger.Error()<<"Failed to perform proper socket close after getsockname failure: "<<strerror(errno);
+                        logger->Error()<<"Failed to perform proper socket close after getsockname failure: "<<strerror(errno);
                     return FailWithDisclaim(finalState.Get());
                 }
                 IPEndpoint ep(&sa);
                 if(!ep.address.isValid)
                 {
-                    logger.Error()<<"Invalid bind address discovered with getsockname";
+                    logger->Error()<<"Invalid bind address discovered with getsockname";
                     if(close(target)!=0)
-                        logger.Error()<<"Failed to perform proper socket close after failure to decode bind ip-address: "<<strerror(errno);
+                        logger->Error()<<"Failed to perform proper socket close after failure to decode bind ip-address: "<<strerror(errno);
                     return FailWithDisclaim(finalState.Get());
                 }
                 bindEP.Set(ep);
@@ -321,7 +322,7 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(ILogger &logger)
     }
     else
     {
-        logger.Warning()<<"Command is not supported: "<<cmd;
+        logger->Warning()<<"Command is not supported: "<<cmd;
         rep=0x07;
     }
 
@@ -336,7 +337,7 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(ILogger &logger)
     //send client response
     if(clientHelper.WriteData(buff,respLen)<respLen)
     {
-        logger.Error()<<"Failed to send response to client";
+        logger->Error()<<"Failed to send response to client";
         return FailWithDisclaim(finalState.Get());
     }
 
@@ -347,8 +348,8 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(ILogger &logger)
         return FailWithDisclaim(finalState.Get());
 }
 
-void Job_ClientHandshake::Cancel(ILogger &logger)
+void Job_ClientHandshake::Cancel(std::shared_ptr<ILogger> logger)
 {
-    logger.Warning()<<"Cancelling client handshake job";
-    cancelled.store(true);
+    logger->Warning()<<"Cancelling client handshake job";
+    cancelled->store(true);
 }

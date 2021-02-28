@@ -12,10 +12,10 @@
 class JobFactory final : public IJobFactory
 {
     private:
-        ILogger &logger;
+        std::shared_ptr<ILogger> logger;
         const IConfig &config;
     public:
-        JobFactory(ILogger &logger, const IConfig &config);
+        JobFactory(std::shared_ptr<ILogger> &logger, const IConfig &config);
         void DestroyJob(IJob* const target) final;
         std::vector<IJob*> CreateJobsFromResult(const IJobResult &source) final;
 };

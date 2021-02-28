@@ -9,7 +9,7 @@
 class JobWorkerFactory final : public IJobWorkerFactory
 {
     public:
-        IJobWorker* CreateWorker(ILogger &logger, IMessageSender &sender) final;
+        IJobWorker* CreateWorker(std::shared_ptr<ILogger> &logger, IMessageSender &sender) final;
         void DestroyWorker(IJobWorker* const target) final;
 };
 

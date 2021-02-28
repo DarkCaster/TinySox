@@ -5,7 +5,7 @@
 
 #include <vector>
 
-JobFactory::JobFactory(ILogger &_logger, const IConfig &_config):
+JobFactory::JobFactory(std::shared_ptr<ILogger>& _logger, const IConfig &_config):
     logger(_logger),
     config(_config)
 {
@@ -28,7 +28,7 @@ void JobFactory::DestroyJob(IJob* const target)
         return;
     }
 
-    logger.Error()<<"Cannot dispose unknown job type!";
+    logger->Error()<<"Cannot dispose unknown job type!";
 }
 
 std::vector<IJob*> JobFactory::CreateJobsFromResult(const IJobResult &source)
@@ -60,6 +60,6 @@ std::vector<IJob*> JobFactory::CreateJobsFromResult(const IJobResult &source)
         return jobs;
     }
 
-    logger.Error()<<"Cannot create new job from unsupported result type from the previous job!";
+    logger->Error()<<"Cannot create new job from unsupported result type from the previous job!";
     return std::vector<IJob*>();
 }

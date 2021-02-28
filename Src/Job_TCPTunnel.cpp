@@ -9,7 +9,8 @@ Job_TCPTunnel::Job_TCPTunnel(const State &_state, const IConfig &_config, const 
     state(_state.ClaimAllSockets()),
     isReader(_isReader)
 {
-     cancelled.store(false);
+    cancelled=std::make_shared<std::atomic<bool>>();
+    cancelled->store(false);
 }
 
 static std::unique_ptr<const IJobResult> TerminalResultDisclaim(const State &state)
@@ -17,11 +18,11 @@ static std::unique_ptr<const IJobResult> TerminalResultDisclaim(const State &sta
     return std::make_unique<const JobTerminalResult>(state.DisclaimAllSockets());
 }
 
-std::unique_ptr<const IJobResult> Job_TCPTunnel::Execute(ILogger &logger)
+std::unique_ptr<const IJobResult> Job_TCPTunnel::Execute(std::shared_ptr<ILogger> logger)
 {
     if(state.socketClaims.size()!=2)
     {
-        logger.Error()<<"Job_TCPTunnel: invalid configuration";
+        logger->Error()<<"Job_TCPTunnel: invalid configuration";
         return TerminalResultDisclaim(state);
     }
 
@@ -32,7 +33,7 @@ std::unique_ptr<const IJobResult> Job_TCPTunnel::Execute(ILogger &logger)
 
     int dr,dw=-1;
 
-    while(!cancelled.load())
+    while(!cancelled->load())
     {
         //read available data
         dr=reader.ReadData(buff.get(),buffSz,true);
@@ -46,8 +47,8 @@ std::unique_ptr<const IJobResult> Job_TCPTunnel::Execute(ILogger &logger)
     return TerminalResultDisclaim(state);
 }
 
-void Job_TCPTunnel::Cancel(ILogger &logger)
+void Job_TCPTunnel::Cancel(std::shared_ptr<ILogger> logger)
 {
-    logger.Warning()<<"Cancelling TCP tunnel job";
-    cancelled.store(true);
+    logger->Warning()<<"Cancelling TCP tunnel job";
+    cancelled->store(true);
 }
