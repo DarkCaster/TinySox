@@ -119,13 +119,14 @@ void JobDispatcher::Worker()
     }
 
     //spin until no workers processing messages
+    logger.Info()<<"Shuting down JobDispatcher: awaiting message processing (pre)";
     while(msgProcCount.load()>0){ }
 
     //any worker that start processing message at this moment should be aware of shutdownPending value, so it will not spawn any new workers
 
     //stop and dispose all free workers
     {
-        const std::lock_guard<std::mutex> lock(freeLock);
+        const std::lock_guard<std::mutex> guard(freeLock);
         for(auto &instance:freeWorkers)
         {
             instance.worker->SetJob(nullptr);
@@ -139,7 +140,7 @@ void JobDispatcher::Worker()
 
     //stop and dispose all active workers running jobs
     {
-        const std::lock_guard<std::mutex> lock(activeLock);
+        const std::lock_guard<std::mutex> guard(activeLock);
         for(auto &instance:activeWorkers)
             instance.second.worker->RequestShutdown();
         for(auto &instance:activeWorkers)
@@ -150,7 +151,7 @@ void JobDispatcher::Worker()
 
     //dispose all finished workers
     {
-        const std::lock_guard<std::mutex> lock(disposeLock);
+        const std::lock_guard<std::mutex> guard(disposeLock);
         for(auto &instance:finishedWorkers)
             instance.worker->RequestShutdown();
         for(auto &instance:finishedWorkers)
@@ -160,9 +161,10 @@ void JobDispatcher::Worker()
     }
 
     //spin until no workers processing messages
+    logger.Info()<<"Shuting down JobDispatcher: awaiting message processing (post)";
     while(msgProcCount.load()>0){ }
 
-    logger.Info()<<"Shuting down JobDispatcher worker thread";
+    logger.Info()<<"Shuting down JobDispatcher complete";
 }
 
 void JobDispatcher::OnShutdown()
@@ -184,6 +186,11 @@ void JobDispatcher::OnMessage(const void* const source, const IMessage& message)
 
 void JobDispatcher::OnMessageInternal(const void* const source, const IJobCompleteMessage& message)
 {
+    //stop creating new jobs and messing with the locks if shuting down
+    //shutdown logic at Worker thread will do the job
+    if(shutdownPending.load())
+        return;
+
     //try to find active worker that sent this message and move it to finishedWorkers to be disposed later
     {
         std::lock_guard<std::mutex> activeGuard(activeLock);
@@ -195,10 +202,6 @@ void JobDispatcher::OnMessageInternal(const void* const source, const IJobComple
             activeWorkers.erase(search);
         }
     }
-
-    //stop creating new jobs if we are currently shutting down
-    if(shutdownPending.load())
-        return;
 
     //create new jobs based on previous jobResult and assign every job to new worker
     for(auto job:jobFactory.CreateJobsFromResult(message.result))

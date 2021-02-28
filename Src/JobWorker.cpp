@@ -47,8 +47,5 @@ void JobWorker::OnShutdown()
 {
     std::lock_guard<std::mutex> guard(jobLock);
     if(jobSet && job!=nullptr)
-    {
-        logger.Info()<<"Cancelling active job";
         job->Cancel(logger);
-    }
 }
