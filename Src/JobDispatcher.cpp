@@ -42,26 +42,18 @@ bool JobDispatcher::_SpawnWorkers(int count)
         auto newWorker=workerFactory.CreateWorker(workerLogger,sender);
         if(!newWorker->Startup())
             return false;
-        freeWorkers.push_back(WorkerInstance{newWorker});
+        freeWorkers.push_back(newWorker);
     }
     return true;
 }
 
-void JobDispatcher::_DestroyWorkerInstance(JobDispatcher::WorkerInstance &instance)
-{
-    //ensure that worker is not executing anything
-    instance.worker->Shutdown();
-    //destroy all dynamically allocated stuff
-    workerFactory.DestroyWorker(instance.worker);
-}
-
-JobDispatcher::WorkerInstance JobDispatcher::_CreateWorkerInstance()
+std::shared_ptr<IJobWorker> JobDispatcher::_CreateWorkerInstance()
 {
     if(freeWorkers.size()<1)
     {
         if(!_SpawnWorkers(1))
             HandleError(errno,"Failed to spawn new worker!");
-        return WorkerInstance{nullptr};
+        return std::shared_ptr<IJobWorker>();
     }
     auto result=freeWorkers.front();
     freeWorkers.pop_front();
@@ -70,7 +62,7 @@ JobDispatcher::WorkerInstance JobDispatcher::_CreateWorkerInstance()
 
 void JobDispatcher::Worker()
 {
-    std::deque<WorkerInstance> tmp;
+    std::deque<std::shared_ptr<IJobWorker>> tmp;
     uint workersLimit=config.GetWorkersCount();
     uint workersSpawnLimit=config.GetWorkersSpawnCount();
     int mgmInerval=config.GetServiceIntervalMS();
@@ -88,9 +80,9 @@ void JobDispatcher::Worker()
         if(tmp.size()>0)
         {
             for(auto &instance:tmp)
-                instance.worker->RequestShutdown();
+                instance->RequestShutdown();
             for(auto &instance:tmp)
-                _DestroyWorkerInstance(instance);
+                instance->Shutdown();
             logger->Info()<<tmp.size()<<" workers disposed";
             tmp.clear();
         }
@@ -127,11 +119,11 @@ void JobDispatcher::Worker()
         for(auto &instance:freeWorkers)
         {
             std::shared_ptr<IJob> emptyJob;
-            instance.worker->SetJob(emptyJob);
-            instance.worker->RequestShutdown();
+            instance->SetJob(emptyJob);
+            instance->RequestShutdown();
         }
         for(auto &instance:freeWorkers)
-            _DestroyWorkerInstance(instance);
+            instance->Shutdown();
         freeWorkers.clear();
         logger->Info()<<"Free-workers pool was shutdown";
     }
@@ -140,9 +132,9 @@ void JobDispatcher::Worker()
     {
         const std::lock_guard<std::mutex> guard(activeLock);
         for(auto &instance:activeWorkers)
-            instance.second.worker->RequestShutdown();
+            instance.second->RequestShutdown();
         for(auto &instance:activeWorkers)
-            _DestroyWorkerInstance(instance.second);
+            instance.second->Shutdown();
         activeWorkers.clear();
         logger->Info()<<"Active workers was shutdown";
     }
@@ -151,9 +143,9 @@ void JobDispatcher::Worker()
     {
         const std::lock_guard<std::mutex> guard(disposeLock);
         for(auto &instance:finishedWorkers)
-            instance.worker->RequestShutdown();
+            instance->RequestShutdown();
         for(auto &instance:finishedWorkers)
-            _DestroyWorkerInstance(instance);
+            instance->Shutdown();
         finishedWorkers.clear();
         logger->Info()<<"Finished workers was shutdown";
     }
@@ -208,12 +200,12 @@ void JobDispatcher::OnMessageInternal(const void* const source, const IJobComple
         //get free worker or create a new one + all helper stuff
         std::lock_guard<std::mutex> freeGuard(freeLock);
         auto newInstance=_CreateWorkerInstance();
-        if(newInstance.worker==nullptr)
+        if(newInstance==nullptr)
             return; //error creating new worker
         //move worker instance to the activeWorkers
         std::lock_guard<std::mutex> activeGuard(activeLock);
-        activeWorkers.insert({newInstance.worker,newInstance});
+        activeWorkers.insert({newInstance.get(),newInstance});
         //assign new job and start it's execution (at worker's thread)
-        newInstance.worker->SetJob(job);
+        newInstance->SetJob(job);
     }
 }

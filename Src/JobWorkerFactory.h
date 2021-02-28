@@ -6,11 +6,12 @@
 #include "ILogger.h"
 #include "IMessageSender.h"
 
+#include <memory>
+
 class JobWorkerFactory final : public IJobWorkerFactory
 {
     public:
-        IJobWorker* CreateWorker(std::shared_ptr<ILogger> &logger, IMessageSender &sender) final;
-        void DestroyWorker(IJobWorker* const target) final;
+        std::shared_ptr<IJobWorker> CreateWorker(std::shared_ptr<ILogger> &logger, IMessageSender &sender) final;
 };
 
 #endif //JOB_WORKER_FACTORY_H
