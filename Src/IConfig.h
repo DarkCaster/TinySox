@@ -6,11 +6,8 @@
 #include "udns.h"
 
 #include "string"
-#include "unordered_map"
 #include "unordered_set"
 #include <sys/time.h>
-
-#include <tuple>
 
 class IConfig
 {

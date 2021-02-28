@@ -12,7 +12,6 @@ enum JobType
     J_CONNECT_TUNNEL,
 };
 
-
 class IJob
 {
     protected:
