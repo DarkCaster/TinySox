@@ -9,6 +9,7 @@
 enum JobType
 {
     J_HANDSHAKE,
+    J_CONNECT_TUNNEL,
 };
 
 
