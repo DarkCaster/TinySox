@@ -22,6 +22,12 @@ void JobFactory::DestroyJob(IJob* const target)
         return;
     }
 
+    if(target->jobType==J_CONNECT_TUNNEL)
+    {
+        delete dynamic_cast<Job_TCPTunnel*>(target);
+        return;
+    }
+
     logger.Error()<<"Cannot dispose unknown job type!";
 }
 
