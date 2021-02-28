@@ -54,7 +54,6 @@ void JobDispatcher::_DestroyWorkerInstance(JobDispatcher::WorkerInstance &instan
     //destroy all dynamically allocated stuff
     workerFactory.DestroyWorker(instance.worker);
     jobFactory.DestroyJob(instance.job);
-    loggerFactory.DestroyLogger(instance.logger);
 }
 
 JobDispatcher::WorkerInstance JobDispatcher::_CreateWorkerInstance(IJob *job)

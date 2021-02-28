@@ -234,10 +234,5 @@ int main (int argc, char *argv[])
         delete listener;
     jobDispatcher.Shutdown();
 
-    logFactory.DestroyLogger(listenerLogger);
-    logFactory.DestroyLogger(jobFactoryLogger);
-    logFactory.DestroyLogger(dispLogger);
-    logFactory.DestroyLogger(mainLogger);
-
     return  0;
 }

@@ -1,23 +1,24 @@
 #ifndef JOBDISPATCHER_H
 #define JOBDISPATCHER_H
 
-#include "IConfig.h"
-#include "IJob.h"
+#include "IMessageSubscriber.h"
+#include "IMessageSender.h"
+#include "IMessage.h"
+#include "WorkerBase.h"
 #include "ILogger.h"
 #include "ILoggerFactory.h"
-#include "IPAddress.h"
-#include "IMessageSender.h"
-#include "IMessageSubscriber.h"
 #include "IJobWorkerFactory.h"
 #include "IJobFactory.h"
-#include "WorkerBase.h"
+#include "IJobWorker.h"
+#include "IJob.h"
+#include "IConfig.h"
 
-#include <mutex>
+#include <string>
 #include <atomic>
 #include <deque>
 #include <unordered_map>
-#include <sys/time.h>
-
+#include <mutex>
+#include <memory>
 
 class JobDispatcher final: public IMessageSubscriber, public WorkerBase
 {
@@ -32,7 +33,7 @@ class JobDispatcher final: public IMessageSubscriber, public WorkerBase
         std::atomic<bool> shutdownPending;
         std::atomic<int> msgProcCount;
 
-        struct WorkerInstance { IJobWorker* worker; ILogger* logger; IJob* job; };
+        struct WorkerInstance { IJobWorker* worker; std::shared_ptr<ILogger> logger; IJob* job; };
         unsigned long workerID;
 
         std::deque<WorkerInstance> freeWorkers;

@@ -3,8 +3,10 @@
 
 #include "ILogger.h"
 #include "ILoggerFactory.h"
+
 #include <mutex>
 #include <atomic>
+#include <memory>
 
 class StdioLoggerFactory final : public ILoggerFactory
 {
@@ -15,8 +17,7 @@ class StdioLoggerFactory final : public ILoggerFactory
     public:
         StdioLoggerFactory();
         //ILoggerFactory
-        ILogger* CreateLogger(const std::string &name) final;
-        void DestroyLogger(ILogger* const target) final;
+        std::shared_ptr<ILogger> CreateLogger(const std::string &name) final;
 };
 
 #endif // STDIOLOGGERFACTORY_H

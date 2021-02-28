@@ -2,12 +2,12 @@
 #define ILOGGER_FACTORY_H
 
 #include "ILogger.h"
+#include "memory"
 
 class ILoggerFactory
 {
     public:
-        virtual ILogger* CreateLogger(const std::string &name) = 0;
-        virtual void DestroyLogger(ILogger* const target) = 0;
+        virtual std::shared_ptr<ILogger> CreateLogger(const std::string &name) = 0;
 };
 
 #endif // ILOGGER_FACTORY_H
