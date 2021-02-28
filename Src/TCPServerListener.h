@@ -14,7 +14,7 @@
 class TCPServerListener final : public WorkerBase
 {
     private:
-        ILogger &logger;
+        std::shared_ptr<ILogger> logger;
         IMessageSender &sender;
         const IConfig &config;
         const IPEndpoint endpoint;
@@ -23,7 +23,7 @@ class TCPServerListener final : public WorkerBase
         void HandleError(const std::string& message);
         void HandleError(int ec, const std::string& message);
     public:
-        TCPServerListener(ILogger &logger, IMessageSender &sender, const IConfig &config, const IPEndpoint &listenAt);
+        TCPServerListener(std::shared_ptr<ILogger> &logger, IMessageSender &sender, const IConfig &config, const IPEndpoint &listenAt);
     protected:
         //WorkerBase
         void Worker() final;

@@ -13,7 +13,7 @@ class ShutdownMessage: public IShutdownMessage { public: ShutdownMessage(int _ec
 class JobCompleteMessage: public IJobCompleteMessage { public: JobCompleteMessage(const IJobResult &_result):IJobCompleteMessage(_result){} };
 class NewClientJobResult: public INewClientJobResult { public: NewClientJobResult(const int fd):INewClientJobResult(fd){} };
 
-TCPServerListener::TCPServerListener(ILogger &_logger, IMessageSender &_sender, const IConfig &_config, const IPEndpoint &_listenAt):
+TCPServerListener::TCPServerListener(std::shared_ptr<ILogger> &_logger, IMessageSender &_sender, const IConfig &_config, const IPEndpoint &_listenAt):
     logger(_logger),
     sender(_sender),
     config(_config),
@@ -24,13 +24,13 @@ TCPServerListener::TCPServerListener(ILogger &_logger, IMessageSender &_sender, 
 
 void TCPServerListener::HandleError(const std::string &message)
 {
-    logger.Error()<<message<<std::endl;
+    logger->Error()<<message<<std::endl;
     sender.SendMessage(this,ShutdownMessage(1));
 }
 
 void TCPServerListener::HandleError(int ec, const std::string &message)
 {
-    logger.Error()<<message<<strerror(ec)<<std::endl;
+    logger->Error()<<message<<strerror(ec)<<std::endl;
     sender.SendMessage(this,ShutdownMessage(ec));
 }
 
@@ -106,7 +106,7 @@ void TCPServerListener::Worker()
         return;
     }
 
-    logger.Info()<<"Listening for incoming connection"<<std::endl;
+    logger->Info()<<"Listening for incoming connection"<<std::endl;
 
     while (!shutdownPending.load())
     {
@@ -134,14 +134,14 @@ void TCPServerListener::Worker()
         auto cSockFd=accept(lSockFd,reinterpret_cast<sockaddr*>(&cAddr),&cAddrSz);
         if(cSockFd<1)
         {
-            logger.Warning()<<"Failed to accept connection: "<<strerror(errno)<<std::endl;
+            logger->Warning()<<"Failed to accept connection: "<<strerror(errno)<<std::endl;
             continue;
         }
         linger cLinger={1,0};
         if (setsockopt(cSockFd, SOL_SOCKET, SO_LINGER, &cLinger, sizeof(linger))!=0)
-            logger.Warning()<<"Failed to set SO_LINGER option to client socket: "<<strerror(errno)<<std::endl;
+            logger->Warning()<<"Failed to set SO_LINGER option to client socket: "<<strerror(errno)<<std::endl;
 
-        logger.Info()<<"Client connected"<<std::endl;
+        logger->Info()<<"Client connected"<<std::endl;
 
         //pass client socket FD to the external logic
         sender.SendMessage(this,JobCompleteMessage(NewClientJobResult(cSockFd)));
@@ -153,7 +153,7 @@ void TCPServerListener::Worker()
         return;
     }
 
-    logger.Info()<<"Shuting down DNSReceiver worker thread"<<std::endl;
+    logger->Info()<<"Shuting down DNSReceiver worker thread"<<std::endl;
 }
 
 void TCPServerListener::OnShutdown()

@@ -23,7 +23,7 @@
 class JobDispatcher final: public IMessageSubscriber, public WorkerBase
 {
     private:
-        ILogger &logger;
+        std::shared_ptr<ILogger> logger;
         ILoggerFactory &loggerFactory;
         IJobWorkerFactory &workerFactory;
         IJobFactory &jobFactory;
@@ -53,7 +53,7 @@ class JobDispatcher final: public IMessageSubscriber, public WorkerBase
         void _DestroyWorkerInstance(WorkerInstance &instance);
         WorkerInstance _CreateWorkerInstance(IJob *job);
     public:
-        JobDispatcher(ILogger &dispatcherLogger, ILoggerFactory &workerLoggerFactory, IJobWorkerFactory &workerFactory, IJobFactory &jobFactory, IMessageSender &sender, const IConfig &config);
+        JobDispatcher(std::shared_ptr<ILogger> &dispatcherLogger, ILoggerFactory &workerLoggerFactory, IJobWorkerFactory &workerFactory, IJobFactory &jobFactory, IMessageSender &sender, const IConfig &config);
         //methods from WorkerBase
         void Worker() final;
         void OnShutdown() final;

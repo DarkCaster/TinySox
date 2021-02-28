@@ -7,7 +7,7 @@
 
 class ShutdownMessage: public IShutdownMessage { public: ShutdownMessage(int _ec):IShutdownMessage(_ec){} };
 
-JobDispatcher::JobDispatcher(ILogger &dispatcherLogger, ILoggerFactory &workerLoggerFactory, IJobWorkerFactory &_workerFactory, IJobFactory &_jobFactory, IMessageSender &_sender, const IConfig &_config):
+JobDispatcher::JobDispatcher(std::shared_ptr<ILogger> &dispatcherLogger, ILoggerFactory &workerLoggerFactory, IJobWorkerFactory &_workerFactory, IJobFactory &_jobFactory, IMessageSender &_sender, const IConfig &_config):
     logger(dispatcherLogger),
     loggerFactory(workerLoggerFactory),
     workerFactory(_workerFactory),
@@ -22,13 +22,13 @@ JobDispatcher::JobDispatcher(ILogger &dispatcherLogger, ILoggerFactory &workerLo
 
 void JobDispatcher::HandleError(const std::string &message)
 {
-    logger.Error()<<message<<std::endl;
+    logger->Error()<<message<<std::endl;
     sender.SendMessage(this,ShutdownMessage(1));
 }
 
 void JobDispatcher::HandleError(int ec, const std::string &message)
 {
-    logger.Error()<<message<<strerror(ec)<<std::endl;
+    logger->Error()<<message<<strerror(ec)<<std::endl;
     sender.SendMessage(this,ShutdownMessage(ec));
 }
 
@@ -93,7 +93,7 @@ void JobDispatcher::Worker()
                 instance.worker->RequestShutdown();
             for(auto &instance:tmp)
                 _DestroyWorkerInstance(instance);
-            logger.Info()<<tmp.size()<<" workers disposed";
+            logger->Info()<<tmp.size()<<" workers disposed";
             tmp.clear();
         }
 
@@ -109,7 +109,7 @@ void JobDispatcher::Worker()
                     HandleError(errno,"Worker startup failed (bg management thread): ");
                     return;
                 }
-                logger.Info()<<spawnCount<<" new workers spawned, total size: "<<freeWorkers.size();
+                logger->Info()<<spawnCount<<" new workers spawned, total size: "<<freeWorkers.size();
             }
         }
 
@@ -118,7 +118,7 @@ void JobDispatcher::Worker()
     }
 
     //spin until no workers processing messages
-    logger.Info()<<"Shuting down JobDispatcher: awaiting message processing (pre)";
+    logger->Info()<<"Shuting down JobDispatcher: awaiting message processing (pre)";
     while(msgProcCount.load()>0){ }
 
     //any worker that start processing message at this moment should be aware of shutdownPending value, so it will not spawn any new workers
@@ -134,7 +134,7 @@ void JobDispatcher::Worker()
         for(auto &instance:freeWorkers)
             _DestroyWorkerInstance(instance);
         freeWorkers.clear();
-        logger.Info()<<"Free-workers pool was shutdown";
+        logger->Info()<<"Free-workers pool was shutdown";
     }
 
     //stop and dispose all active workers running jobs
@@ -145,7 +145,7 @@ void JobDispatcher::Worker()
         for(auto &instance:activeWorkers)
             _DestroyWorkerInstance(instance.second);
         activeWorkers.clear();
-        logger.Info()<<"Active workers was shutdown";
+        logger->Info()<<"Active workers was shutdown";
     }
 
     //dispose all finished workers
@@ -156,14 +156,14 @@ void JobDispatcher::Worker()
         for(auto &instance:finishedWorkers)
             _DestroyWorkerInstance(instance);
         finishedWorkers.clear();
-        logger.Info()<<"Finished workers was shutdown";
+        logger->Info()<<"Finished workers was shutdown";
     }
 
     //spin until no workers processing messages
-    logger.Info()<<"Shuting down JobDispatcher: awaiting message processing (post)";
+    logger->Info()<<"Shuting down JobDispatcher: awaiting message processing (post)";
     while(msgProcCount.load()>0){ }
 
-    logger.Info()<<"Shuting down JobDispatcher complete";
+    logger->Info()<<"Shuting down JobDispatcher complete";
 }
 
 void JobDispatcher::OnShutdown()
@@ -205,7 +205,7 @@ void JobDispatcher::OnMessageInternal(const void* const source, const IJobComple
     //create new jobs based on previous jobResult and assign every job to new worker
     for(auto job:jobFactory.CreateJobsFromResult(message.result))
     {
-        //logger.Info()<<"Preparing worker for new job";
+        //logger->Info()<<"Preparing worker for new job";
         //get free worker or create a new one + all helper stuff
         std::lock_guard<std::mutex> freeGuard(freeLock);
         auto newInstance=_CreateWorkerInstance(job);

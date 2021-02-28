@@ -174,12 +174,12 @@ int main (int argc, char *argv[])
     //create instances for main logic
     JobWorkerFactory jobWorkerFactory;
     JobFactory jobFactory(jobFactoryLogger,config);
-    JobDispatcher jobDispatcher(*dispLogger,logFactory,jobWorkerFactory,jobFactory,messageBroker,config);
+    JobDispatcher jobDispatcher(dispLogger,logFactory,jobWorkerFactory,jobFactory,messageBroker,config);
     messageBroker.AddSubscriber(jobDispatcher);
 
     std::vector<TCPServerListener*> serverListeners;
     for(auto addr:config.GetListenAddrs())
-        serverListeners.push_back(new TCPServerListener(*listenerLogger,messageBroker,config,addr));
+        serverListeners.push_back(new TCPServerListener(listenerLogger,messageBroker,config,addr));
 
     //create sigset_t struct with signals
     sigset_t sigset;
