@@ -48,6 +48,6 @@ std::unique_ptr<const IJobResult> Job_TCPTunnel::Execute(std::shared_ptr<ILogger
 
 void Job_TCPTunnel::Cancel(std::shared_ptr<ILogger> logger)
 {
-    logger->Warning()<<"Cancelling TCP tunnel job";
-    cancelled->store(true);
+    if(!cancelled->exchange(true))
+        logger->Warning()<<"Cancelling TCPTunnel job "<<(isReader?"(reader)":"(writer)");
 }

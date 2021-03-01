@@ -358,6 +358,6 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(std::shared_ptr<I
 
 void Job_ClientHandshake::Cancel(std::shared_ptr<ILogger> logger)
 {
-    logger->Warning()<<"Cancelling client handshake job";
-    cancelled->store(true);
+    if(!cancelled->exchange(true))
+        logger->Warning()<<"Cancelling ClientHandshake job";
 }
