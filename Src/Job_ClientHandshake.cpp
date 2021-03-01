@@ -180,49 +180,58 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(std::shared_ptr<I
             return FailWithDisclaim(state);
         std::string dname(reinterpret_cast<char*>(buff),dnameLen);
 
-        logger->Info()<<"Resolving domain: "<<dname;
-        auto udns_ctx=dns_new(config.GetBaseUDNSContext());
-        if(udns_ctx==nullptr)
+        IPAddress testIP(dname);
+        if(testIP.isValid)
         {
-            logger->Error()<<"Failed to create new UDNS context: "<<strerror(errno);
-            return FailWithDisclaim(state);
+            logger->Warning()<<("IP address provided in domain name");
+            destIPs.push_back(testIP);
         }
-
-        if(dns_open(udns_ctx)<0)
+        else
         {
-            logger->Error()<<"dns_open failed: "<<strerror(errno);
+            logger->Info()<<"Resolving domain: "<<dname;
+            auto udns_ctx=dns_new(config.GetBaseUDNSContext());
+            if(udns_ctx==nullptr)
+            {
+                logger->Error()<<"Failed to create new UDNS context: "<<strerror(errno);
+                return FailWithDisclaim(state);
+            }
+
+            if(dns_open(udns_ctx)<0)
+            {
+                logger->Error()<<"dns_open failed: "<<strerror(errno);
+                dns_free(udns_ctx);
+                return FailWithDisclaim(state);
+            }
+
+            auto ans6=dns_resolve_a6(udns_ctx, dname.c_str(), config.GetUDNSSearchDomainIsSet()?0:DNS_NOSRCH);
+            if(dns_status(udns_ctx)==0)
+                for(auto addr_idx=0;addr_idx<ans6->dnsa6_nrr;++addr_idx)
+                {
+                    IPAddress v6Addr(&(ans6->dnsa6_addr[addr_idx]),IPV6_ADDR_LEN);
+                    if(!v6Addr.isValid)
+                        logger->Warning()<<"udns IN AAAA query to host "<<dname<<" produced invalid ipv6 address!";
+                    else
+                        destIPs.push_back(v6Addr);
+                }
+            if(ans6!=NULL)
+                free(ans6);
+
+            auto ans4=dns_resolve_a4(udns_ctx, dname.c_str(), config.GetUDNSSearchDomainIsSet()?0:DNS_NOSRCH);
+            if(dns_status(udns_ctx)==0)
+                for(auto addr_idx=0;addr_idx<ans4->dnsa4_nrr;++addr_idx)
+                {
+                    IPAddress v4Addr(&(ans4->dnsa4_addr[addr_idx]),IPV4_ADDR_LEN);
+                    if(!v4Addr.isValid)
+                        logger->Warning()<<"udns IN A query to host "<<dname<<" produced invalid ipv4 address!";
+                    else
+                        destIPs.push_back(v4Addr);
+                }
+            if(ans4!=NULL)
+                free(ans4);
+
+            dns_close(udns_ctx);
             dns_free(udns_ctx);
-            return FailWithDisclaim(state);
         }
-
-        auto ans6=dns_resolve_a6(udns_ctx, dname.c_str(), config.GetUDNSSearchDomainIsSet()?0:DNS_NOSRCH);
-        if(dns_status(udns_ctx)==0)
-            for(auto addr_idx=0;addr_idx<ans6->dnsa6_nrr;++addr_idx)
-            {
-                IPAddress v6Addr(&(ans6->dnsa6_addr[addr_idx]),IPV6_ADDR_LEN);
-                if(!v6Addr.isValid)
-                    logger->Warning()<<"udns IN AAAA query to host "<<dname<<" produced invalid ipv6 address!";
-                else
-                    destIPs.push_back(v6Addr);
-            }
-        if(ans6!=NULL)
-            free(ans6);
-
-        auto ans4=dns_resolve_a4(udns_ctx, dname.c_str(), config.GetUDNSSearchDomainIsSet()?0:DNS_NOSRCH);
-        if(dns_status(udns_ctx)==0)
-            for(auto addr_idx=0;addr_idx<ans4->dnsa4_nrr;++addr_idx)
-            {
-                IPAddress v4Addr(&(ans4->dnsa4_addr[addr_idx]),IPV4_ADDR_LEN);
-                if(!v4Addr.isValid)
-                    logger->Warning()<<"udns IN A query to host "<<dname<<" produced invalid ipv4 address!";
-                else
-                    destIPs.push_back(v4Addr);
-            }
-        if(ans4!=NULL)
-            free(ans4);
-
-        dns_close(udns_ctx);
-        dns_free(udns_ctx);
     }
     else
     {
