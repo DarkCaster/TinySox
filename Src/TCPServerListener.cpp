@@ -137,7 +137,10 @@ void TCPServerListener::Worker()
             logger->Warning()<<"Failed to accept connection: "<<strerror(errno)<<std::endl;
             continue;
         }
-        linger cLinger={1,0};
+
+        linger cLinger={0,0};
+        cLinger.l_onoff=config.GetLingerSec()>=0;
+        cLinger.l_linger=cLinger.l_onoff?config.GetLingerSec():0;
         if (setsockopt(cSockFd, SOL_SOCKET, SO_LINGER, &cLinger, sizeof(linger))!=0)
             logger->Warning()<<"Failed to set SO_LINGER option to client socket: "<<strerror(errno)<<std::endl;
 
