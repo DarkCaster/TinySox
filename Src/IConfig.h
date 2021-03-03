@@ -25,6 +25,7 @@ class IConfig
         virtual dns_ctx * GetBaseUDNSContext() const = 0;
         virtual bool GetUDNSSearchDomainIsSet() const = 0;
         virtual int GetTCPBuffSz() const = 0;
+        virtual int GetLingerSec() const = 0;
 };
 
 #endif

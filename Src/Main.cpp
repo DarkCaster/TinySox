@@ -35,6 +35,7 @@ void usage(const std::string &self)
     std::cerr<<"    -dns <ipaddress> use external DNS server"<<std::endl;
     std::cerr<<"    -src <domain> search domain for use with external DNS"<<std::endl;
     std::cerr<<"    -bsz <bytes> size of TCP buffer used for transferring data"<<std::endl;
+    std::cerr<<"    -ct <seconds> timeout for flushing data when closing sockets, 30 - default, -1 to disable, 0 - close without flushing"<<std::endl;
 }
 
 int param_error(const std::string &self, const std::string &message)
@@ -157,6 +158,16 @@ int main (int argc, char *argv[])
         if(bsz<128||bsz>131072)
             return param_error(argv[0],"TCP buffer size is invalid");
         config.SetTCPBuffSz(bsz);
+    }
+
+    //linger
+    config.SetLingerSec(30);
+    if(args.find("-ct")!=args.end())
+    {
+        auto time=std::atoi(args["-ct"].c_str());
+        if(time<-1||time>600)
+            return param_error(argv[0],"Flush timeout value is invalid");
+        config.SetLingerSec(time);
     }
 
     StdioLoggerFactory logFactory;

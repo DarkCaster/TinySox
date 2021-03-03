@@ -45,6 +45,11 @@ void Config::SetTCPBuffSz(int sz)
     TCPBuffSz=sz;
 }
 
+void Config::SetLingerSec(int sz)
+{
+    linger=sz;
+}
+
 int Config::GetSocketTimeoutMS() const
 {
     return socketTimeout;
@@ -96,6 +101,11 @@ bool Config::GetUDNSSearchDomainIsSet() const
 int Config::GetTCPBuffSz() const
 {
     return TCPBuffSz;
+}
+
+int Config::GetLingerSec() const
+{
+    return linger;
 }
 
 std::unordered_set<IPEndpoint> Config::GetListenAddrs() const

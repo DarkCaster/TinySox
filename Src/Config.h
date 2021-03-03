@@ -21,6 +21,7 @@ class Config final : public IConfig
         dns_ctx * context;
         bool udnsSRCSet;
         int TCPBuffSz;
+        int linger;
         std::unordered_set<IPEndpoint> listenAddrs;
         std::unordered_map<std::string,const User> users;
     public:
@@ -33,6 +34,7 @@ class Config final : public IConfig
         void SetBaseUDNSContext(dns_ctx * context);
         void SetUDNSSearchDomainIsSet(bool val);
         void SetTCPBuffSz(int sz);
+        void SetLingerSec(int sz);
         //from IConfig
         std::unordered_set<IPEndpoint> GetListenAddrs() const final;
         int GetSocketTimeoutMS() const final;
@@ -45,6 +47,7 @@ class Config final : public IConfig
         dns_ctx * GetBaseUDNSContext() const final;
         bool GetUDNSSearchDomainIsSet() const final;
         int GetTCPBuffSz() const final;
+        int GetLingerSec() const final;
 };
 
 #endif //CONFIG_H
