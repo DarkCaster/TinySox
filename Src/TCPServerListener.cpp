@@ -1,5 +1,6 @@
 #include "TCPServerListener.h"
 #include "IJobResult.h"
+#include "SocketHelpers.h"
 
 #include <cstring>
 #include <cerrno>
@@ -138,13 +139,8 @@ void TCPServerListener::Worker()
             continue;
         }
 
-        linger cLinger={0,0};
-        cLinger.l_onoff=config.GetLingerSec()>=0;
-        cLinger.l_linger=cLinger.l_onoff?config.GetLingerSec():0;
-        if (setsockopt(cSockFd, SOL_SOCKET, SO_LINGER, &cLinger, sizeof(linger))!=0)
-            logger->Warning()<<"Failed to set SO_LINGER option to client socket: "<<strerror(errno)<<std::endl;
-
         logger->Info()<<"Client connected"<<std::endl;
+        SocketHelpers::TuneSocketParams(logger,cSockFd,config);
 
         //pass client socket FD to the external logic
         sender.SendMessage(this,JobCompleteMessage(NewClientJobResult(cSockFd)));

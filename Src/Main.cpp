@@ -155,7 +155,7 @@ int main (int argc, char *argv[])
     if(args.find("-bsz")!=args.end())
     {
         auto bsz=std::atoi(args["-bsz"].c_str());
-        if(bsz<128||bsz>131072)
+        if(bsz<128||bsz>65536)
             return param_error(argv[0],"TCP buffer size is invalid");
         config.SetTCPBuffSz(bsz);
     }

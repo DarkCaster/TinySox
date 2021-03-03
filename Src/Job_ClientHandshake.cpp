@@ -263,15 +263,7 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(std::shared_ptr<I
         {
             //create socket
             auto target=socket(ip.isV6?AF_INET6:AF_INET,SOCK_STREAM,0);
-
-            linger tLinger={1,0};
-            if (setsockopt(target, SOL_SOCKET, SO_LINGER, &tLinger, sizeof(linger))!=0)
-            {
-                logger->Warning()<<"Failed to setup SO_LINGER on outgoing connection"<<strerror(errno);
-                if(close(target)!=0)
-                    logger->Error()<<"Failed to perform proper socket close after failed setup: "<<strerror(errno);
-                return FailWithDisclaim(finalState.Get());
-            }
+            SocketHelpers::TuneSocketParams(logger,target,config);
 
             int cr=-1;
             if(ip.isV6)

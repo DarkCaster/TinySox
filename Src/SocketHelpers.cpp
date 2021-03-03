@@ -93,7 +93,12 @@ int TCPSocketReader::ReadData(unsigned char * const target, const int len, const
         if(readState<0)
         {
             if(readState==-2)
+            {
                 logger->Warning()<<"TCPSocketReader: Reading cancelled";
+                linger cLinger={1,0}; //to save time on shutdown
+                if (setsockopt(fd, SOL_SOCKET, SO_LINGER, &cLinger, sizeof(linger))!=0)
+                    logger->Warning()<<"Failed to set SO_LINGER option to socket: "<<strerror(errno)<<std::endl;
+            }
             return readState;
         }
 
@@ -134,7 +139,12 @@ int TCPSocketWriter::WriteData(const unsigned char* const target, const int len)
     if(writeState<0)
     {
         if(writeState==-2)
+        {
             logger->Warning()<<"TCPSocketWriter: Writing cancelled";
+            linger cLinger={1,0}; //to save time on shutdown
+            if (setsockopt(fd, SOL_SOCKET, SO_LINGER, &cLinger, sizeof(linger))!=0)
+                logger->Warning()<<"Failed to set SO_LINGER option to socket: "<<strerror(errno)<<std::endl;
+        }
         return writeState;
     }
 
@@ -239,7 +249,7 @@ void TCPSocketWriter::Shutdown()
     writeState=-2;
 }
 
-bool SocketClaimsCleaner::CloseUnclaimedSockets(std::shared_ptr<ILogger> &logger, const std::vector<SocketClaimState> &claimStates)
+bool SocketHelpers::CloseUnclaimedSockets(std::shared_ptr<ILogger> &logger, const std::vector<SocketClaimState> &claimStates)
 {
     bool result=true;
     for(auto &cState:claimStates)
@@ -254,5 +264,22 @@ bool SocketClaimsCleaner::CloseUnclaimedSockets(std::shared_ptr<ILogger> &logger
                 logger->Info()<<"Socket closed: "<<cState.socketFD;
         }
     return result;
+}
+
+void SocketHelpers::TuneSocketParams(std::shared_ptr<ILogger> &logger, int fd, const IConfig& config)
+{
+    //set linger
+    linger cLinger={0,0};
+    cLinger.l_onoff=config.GetLingerSec()>=0;
+    cLinger.l_linger=cLinger.l_onoff?config.GetLingerSec():0;
+    if (setsockopt(fd, SOL_SOCKET, SO_LINGER, &cLinger, sizeof(linger))!=0)
+        logger->Warning()<<"Failed to set SO_LINGER option to socket: "<<strerror(errno)<<std::endl;
+    //set buffer size
+    auto bsz=config.GetTCPBuffSz();
+    if(setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &bsz, sizeof(bsz)))
+        logger->Warning()<<"Failed to set SO_SNDBUF option to socket: "<<strerror(errno)<<std::endl;
+    bsz=config.GetTCPBuffSz();
+    if(setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &bsz, sizeof(bsz)))
+        logger->Warning()<<"Failed to set SO_RCVBUF option to socket: "<<strerror(errno)<<std::endl;
 }
 

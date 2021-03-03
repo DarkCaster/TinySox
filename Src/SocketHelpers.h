@@ -46,10 +46,11 @@ class TCPSocketWriter
         void Shutdown();
 };
 
-class SocketClaimsCleaner
+class SocketHelpers
 {
     public:
         static bool CloseUnclaimedSockets(std::shared_ptr<ILogger> &logger, const std::vector<SocketClaimState> &claimStates);
+        static void TuneSocketParams(std::shared_ptr<ILogger> &logger, int fd, const IConfig &config);
 };
 
 #endif //SOCKET_HELPERS_H

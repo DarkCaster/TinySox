@@ -19,7 +19,7 @@ std::vector<std::shared_ptr<IJob>> JobFactory::CreateJobsFromResult(const IJobRe
         //dispose stuff stored in state object
         auto result=static_cast<const IJobTerminalResult&>(source);
         //this will close unused sockets
-        SocketClaimsCleaner::CloseUnclaimedSockets(logger,result.state.socketClaimStates);
+        SocketHelpers::CloseUnclaimedSockets(logger,result.state.socketClaimStates);
         return std::vector<std::shared_ptr<IJob>>();
     }
 

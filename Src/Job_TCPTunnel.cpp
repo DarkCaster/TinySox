@@ -39,7 +39,6 @@ std::unique_ptr<const IJobResult> Job_TCPTunnel::Execute(std::shared_ptr<ILogger
         if(writerState<0)
         {
             logger->Info()<<(isReader?"(reader)":"(writer)")<<"!WS";
-            reader.Shutdown();
             break;
         }
 
@@ -49,7 +48,6 @@ std::unique_ptr<const IJobResult> Job_TCPTunnel::Execute(std::shared_ptr<ILogger
         if(readerState<0)
         {
             logger->Info()<<(isReader?"(reader)":"(writer)")<<"!RS";
-            writer.Shutdown();
             break;
         }
 
@@ -61,24 +59,17 @@ std::unique_ptr<const IJobResult> Job_TCPTunnel::Execute(std::shared_ptr<ILogger
 
         //read available data
         auto dr=reader.ReadData(buff.get(),buffSz,true);
-        if(dr==-2)
-            break;
         if(dr<1)
-        {
-            writer.Shutdown();
             break;
-        }
 
         //write data, depending on writer state this may take some time
         auto dw=writer.WriteData(buff.get(),dr);
-        if(dw==-2)
-            break;
         if(dw<dr)
-        {
-            reader.Shutdown();
             break;
-        }
     }
+
+    reader.Shutdown();
+    writer.Shutdown();
 
     return TerminalResultDisclaim(state);
 }
