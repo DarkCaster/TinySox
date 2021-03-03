@@ -24,12 +24,12 @@ static std::unique_ptr<const IJobResult> FailWithDisclaim(const State &state)
     return std::make_unique<const JobTerminalResult>(state.DisclaimAllSockets());
 }
 
-std::unique_ptr<const IJobResult> SendAuthFailWithDisclaim(const State &state, TCPSocketHelper &clientHelper)
+std::unique_ptr<const IJobResult> SendAuthFailWithDisclaim(const State &state, TCPSocketWriter &writer)
 {
     unsigned char buff[2];
     buff[0]=0x01;
     buff[1]=0x01;
-    clientHelper.WriteData(buff,2);
+    writer.WriteData(buff,2);
     return std::make_unique<const JobTerminalResult>(state.DisclaimAllSockets());
 }
 
@@ -42,11 +42,13 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(std::shared_ptr<I
     }
 
     //dumb abstraction for reading/writing data via sockets
-    TCPSocketHelper clientHelper(logger,config,state.socketClaimStates[0].socketFD,cancelled);
+    TCPSocketReader reader(logger,config,state.socketClaimStates[0].socketFD,cancelled);
+    TCPSocketWriter writer(logger,config,state.socketClaimStates[0].socketFD,cancelled);
+
     const int BUFF_LEN = 512; //this should be enough for any response
     unsigned char buff[BUFF_LEN]={};
 
-    if(clientHelper.ReadData(buff,1,false)<1)
+    if(reader.ReadData(buff,1,false)<1)
         return FailWithDisclaim(state);
     if(buff[0]!=0x05)
     {
@@ -54,10 +56,10 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(std::shared_ptr<I
         return FailWithDisclaim(state);
     }
 
-    if(clientHelper.ReadData(buff,1,false)<1)
+    if(reader.ReadData(buff,1,false)<1)
         return FailWithDisclaim(state);
     int nmethods=buff[0];
-    if(clientHelper.ReadData(buff,nmethods,false)<nmethods)
+    if(reader.ReadData(buff,nmethods,false)<nmethods)
         return FailWithDisclaim(state);
 
     //method selection: we can only support 0x00 and 0x02
@@ -76,15 +78,15 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(std::shared_ptr<I
         logger->Warning()<<"Client handshake failed, no supported auth method was provided by client";
         buff[0]=0x05;
         buff[1]=0xFF;
-        clientHelper.WriteData(buff,2);
-        clientHelper.ReadData(buff,BUFF_LEN,true); //wait while client close connection, so reading may fail (this is ok)
+        writer.WriteData(buff,2);
+        reader.ReadData(buff,BUFF_LEN,true); //wait while client close connection, so reading may fail (this is ok)
         return FailWithDisclaim(state);
     }
 
     //notify client about selected auth method
     buff[0]=0x05;
     buff[1]=static_cast<unsigned char>(selectedAuthMethod);
-    if(clientHelper.WriteData(buff,2)!=2)
+    if(writer.WriteData(buff,2)!=2)
     {
         logger->Warning()<<"Client handshake failed, clien disconnected (auth method selection)";
         return FailWithDisclaim(state);
@@ -93,25 +95,25 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(std::shared_ptr<I
     //login/password auth
     if(selectedAuthMethod==0x02)
     {
-        if(clientHelper.ReadData(buff,1,false)<1)
+        if(reader.ReadData(buff,1,false)<1)
             return FailWithDisclaim(state);
         if(buff[0]!=0x01)
         {
             logger->Warning()<<"Client handshake failed, invalid auth version: "<<static_cast<int>(buff[0]);
-            return SendAuthFailWithDisclaim(state,clientHelper);
+            return SendAuthFailWithDisclaim(state,writer);
         }
         //username
-        if(clientHelper.ReadData(buff,1,false)<1)
+        if(reader.ReadData(buff,1,false)<1)
             return FailWithDisclaim(state);
         int ulen=buff[0];
-        if(clientHelper.ReadData(buff,ulen,false)<ulen)
+        if(reader.ReadData(buff,ulen,false)<ulen)
             return FailWithDisclaim(state);
         std::string username(reinterpret_cast<char*>(buff),ulen);
         //password
-        if(clientHelper.ReadData(buff,1,false)<1)
+        if(reader.ReadData(buff,1,false)<1)
             return FailWithDisclaim(state);
         int plen=buff[0];
-        if(clientHelper.ReadData(buff,plen,false)<plen)
+        if(reader.ReadData(buff,plen,false)<plen)
             return FailWithDisclaim(state);
         std::string password(reinterpret_cast<char*>(buff),plen);
         //check authentification
@@ -119,19 +121,19 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(std::shared_ptr<I
         if(user==nullptr || user->password!=password)
         {
             logger->Warning()<<"Client handshake failed, login failed";
-            return SendAuthFailWithDisclaim(state,clientHelper);
+            return SendAuthFailWithDisclaim(state,writer);
         }
         //confirm login
         buff[0]=0x01;
         buff[1]=0x00;
-        if(clientHelper.WriteData(buff,2)!=2)
+        if(writer.WriteData(buff,2)!=2)
             return FailWithDisclaim(state);
     }
 
     //connection neogotiation
 
     //version
-    if(clientHelper.ReadData(buff,1,false)<1)
+    if(reader.ReadData(buff,1,false)<1)
         return FailWithDisclaim(state);
     if(buff[0]!=0x05)
     {
@@ -140,19 +142,19 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(std::shared_ptr<I
     }
 
     //cmd+reserved
-    if(clientHelper.ReadData(buff,2,false)<2)
+    if(reader.ReadData(buff,2,false)<2)
         return FailWithDisclaim(state);
     int cmd=buff[0];
 
     //atyp
-    if(clientHelper.ReadData(buff,1,false)<1)
+    if(reader.ReadData(buff,1,false)<1)
         return FailWithDisclaim(state);
     int atyp=buff[0];
 
     std::vector<IPAddress> destIPs;
     if(atyp==0x01)
     {
-        if(clientHelper.ReadData(buff,IPV4_ADDR_LEN,false)<IPV4_ADDR_LEN)
+        if(reader.ReadData(buff,IPV4_ADDR_LEN,false)<IPV4_ADDR_LEN)
             return FailWithDisclaim(state);
         IPAddress v4addr(buff,IPV4_ADDR_LEN);
         if(!v4addr.isValid)
@@ -162,7 +164,7 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(std::shared_ptr<I
     }
     else if(atyp==0x04)
     {
-        if(clientHelper.ReadData(buff,IPV6_ADDR_LEN,false)<IPV6_ADDR_LEN)
+        if(reader.ReadData(buff,IPV6_ADDR_LEN,false)<IPV6_ADDR_LEN)
             return FailWithDisclaim(state);
         IPAddress v6addr(buff,IPV6_ADDR_LEN);
         if(!v6addr.isValid)
@@ -173,10 +175,10 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(std::shared_ptr<I
     else if(atyp==0x03)
     {
         //dns resolve
-        if(clientHelper.ReadData(buff,1,false)<1)
+        if(reader.ReadData(buff,1,false)<1)
             return FailWithDisclaim(state);
         int dnameLen=buff[0];
-        if(clientHelper.ReadData(buff,dnameLen,false)<dnameLen)
+        if(reader.ReadData(buff,dnameLen,false)<dnameLen)
             return FailWithDisclaim(state);
         std::string dname(reinterpret_cast<char*>(buff),dnameLen);
 
@@ -240,7 +242,7 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(std::shared_ptr<I
     }
 
     //read port
-    if(clientHelper.ReadData(buff,2,false)<2)
+    if(reader.ReadData(buff,2,false)<2)
         return FailWithDisclaim(state);
     uint16_t nsport;
     std::memcpy(reinterpret_cast<void*>(&nsport),buff,sizeof(uint16_t));
@@ -343,7 +345,7 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(std::shared_ptr<I
     auto respLen=ep.ToRawBuff(buff+4)+4;
 
     //send client response
-    if(clientHelper.WriteData(buff,respLen)<respLen)
+    if(writer.WriteData(buff,respLen)<respLen)
     {
         logger->Error()<<"Failed to send response to client";
         return FailWithDisclaim(finalState.Get());

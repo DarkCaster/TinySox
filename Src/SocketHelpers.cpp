@@ -2,131 +2,241 @@
 
 #include <cstring>
 #include <cerrno>
-#include <sys/types.h>
-#include <arpa/inet.h>
 #include <unistd.h>
+#include <sys/socket.h>
 
-//TODO: needs refactor, maybe, read/write data from/to socket to/from streams ?
-//TODO: optimize reading and wtiting logic, use reading/writing in async manner to eliminate unneded work while awaiting for data
-TCPSocketHelper::TCPSocketHelper(std::shared_ptr<ILogger> &_logger, const IConfig &_config, const int _fd, std::shared_ptr<std::atomic<bool> >& _cancel):
+TCPSocketReader::TCPSocketReader(std::shared_ptr<ILogger> &_logger, const IConfig &_config, const int _fd, std::shared_ptr<std::atomic<bool>> &_cancel):
     logger(_logger),
     config(_config),
-    fd(_fd),
+    fd(dup(_fd)),
+    epollFd(epoll_create(1)),
     cancel(_cancel)
 {
-    readAllowed=true;
-    writeAllowed=true;
+    readState=0;
+    sockEvents={};
+    sockEvents.events=EPOLLIN|EPOLLRDHUP;
+    if(fd<0)
+    {
+        logger->Error()<<"TCPSocketReader: dup(fd) failed: "<<strerror(errno);
+        readState=-1;
+    }
+    if(epollFd<0)
+    {
+        logger->Error()<<"TCPSocketReader: Failed to create epoll fd: "<<strerror(errno);
+        readState=-1;
+    }
+    else if(epoll_ctl(epollFd,EPOLL_CTL_ADD,fd,&sockEvents)<0)
+    {
+        logger->Error()<<"TCPSocketReader: Failed to setup epoll: "<<strerror(errno);
+        readState=-1;
+    }
 }
 
-int TCPSocketHelper::ReadData(unsigned char * const target, const int len, const bool allowPartial)
+TCPSocketWriter::TCPSocketWriter(std::shared_ptr<ILogger> &_logger, const IConfig &_config, const int _fd, std::shared_ptr<std::atomic<bool>> &_cancel):
+    logger(_logger),
+    config(_config),
+    fd(dup(_fd)),
+    epollFd(epoll_create(1)),
+    cancel(_cancel)
 {
-    if(!readAllowed)
-        return -1;
+    writeState=0;
+    sockEvents={};
+    sockEvents.events=EPOLLOUT;
+    if(fd<0)
+    {
+        logger->Error()<<"TCPSocketWriter: dup(fd) failed: "<<strerror(errno);
+        writeState=-1;
+    }
+    if(epollFd<0)
+    {
+        logger->Error()<<"TCPSocketWriter: Failed to create epoll fd: "<<strerror(errno);
+        writeState=-1;
+    }
+    else if(epoll_ctl(epollFd,EPOLL_CTL_ADD,fd,&sockEvents)<0)
+    {
+        logger->Error()<<"TCPSocketWriter: Failed to setup epoll: "<<strerror(errno);
+        writeState=-1;
+    }
+}
+
+TCPSocketReader::~TCPSocketReader()
+{
+    if(epollFd>=0 && epoll_ctl(epollFd,EPOLL_CTL_DEL,fd, &sockEvents)<0)
+        logger->Error()<<"TCPSocketReader: Failed to deconfigure epoll: "<<strerror(errno);
+    if(epollFd>=0 && close(epollFd)<0)
+        logger->Error()<<"TCPSocketReader: Failed to close epoll fd: "<<strerror(errno);
+    if(epollFd>=0 && close(fd)<0)
+        logger->Error()<<"TCPSocketReader: Failed to close socket fd(dup): "<<strerror(errno);
+}
+
+
+TCPSocketWriter::~TCPSocketWriter()
+{
+    if(epollFd>=0 && epoll_ctl(epollFd,EPOLL_CTL_DEL,fd, &sockEvents)<0)
+        logger->Error()<<"TCPSocketWriter: Failed to deconfigure epoll: "<<strerror(errno);
+    if(epollFd>=0 && close(epollFd)<0)
+        logger->Error()<<"TCPSocketWriter: Failed to close epoll fd: "<<strerror(errno);
+    if(epollFd>=0 && close(fd)<0)
+        logger->Error()<<"TCPSocketWriter: Failed to close socket fd(dup): "<<strerror(errno);
+}
+
+int TCPSocketReader::ReadData(unsigned char * const target, const int len, const bool allowPartial)
+{
+    if(readState<0)
+        return readState;
 
     auto dataLeft=len;
-    while(!cancel->load())
+    while(true)
     {
-        //wait for data
-        fd_set set;
-        FD_ZERO(&set);
-        FD_SET(fd, &set);
-        auto ct = config.GetSocketTimeoutTV();
-        auto crv = select(fd+1, &set, NULL, NULL, &ct);
-        if(crv==0) //no data available for reading, retry
-            continue;
-
-        if(crv<0)
+        if(readState==0)
+            while(GetReadState()==0){}
+        if(readState<0)
         {
-            auto error=errno;
-            if(error==EINTR)//interrupted by signal
-                logger->Warning()<<"Reading (select) interrupted by signal";
-            else
-                logger->Warning()<<"Reading (select) failed with error: "<<strerror(error);
-            readAllowed=false;
-            return -1;
+            if(readState==-2)
+                logger->Warning()<<"TCPSocketReader: Reading cancelled";
+            return readState;
         }
 
         //read data
         auto dataRead=read(fd,reinterpret_cast<void*>(target+len-dataLeft),dataLeft);
         if(dataRead==0)
         {
-            logger->Info()<<"Socket has been shutdown (read)"<<std::endl;
-            readAllowed=false;
-            return len-dataLeft; //return how much we read so far
+            readState=-1;
+            return readState;
         }
         if(dataRead<0)
         {
             auto error=errno;
-            if(error==EINTR)//interrupted by signal
-                logger->Warning()<<"Reading interrupted by signal";
-            else
-                logger->Warning()<<"Reading failed with error: "<<strerror(error);
-            readAllowed=false;
-            return -1;
+            if(error!=EINTR)
+                logger->Warning()<<"TCPSocketReader: Read ended with error: "<<strerror(error);
+            readState=-1;
+            return readState;
         }
+        //reset read state on successful reads
+        if(readState>0)
+            readState=0;
         dataLeft-=static_cast<int>(dataRead);
         if(allowPartial)
             return static_cast<int>(dataRead);
-        if(dataLeft<1) //return if we have read all the data requested
+        //return if we have read all the data requested
+        if(dataLeft<1)
             return len;
     }
-
-    logger->Warning()<<"Reading cancelled";
     return -1;
 }
 
-int TCPSocketHelper::WriteData(const unsigned char* const target, const int len)
+int TCPSocketWriter::WriteData(const unsigned char* const target, const int len)
 {
-    if(!writeAllowed)
-        return -1;
-
-    int crv=0;
-    while(!cancel->load() && crv==0)
+    if(writeState<0)
+        return writeState;
+    if(writeState==0)
+        while(GetWriteState()==0){}
+    if(writeState<0)
     {
-        //wait for data
-        fd_set set;
-        FD_ZERO(&set);
-        FD_SET(fd, &set);
-        auto ct = config.GetSocketTimeoutTV();
-        crv = select(fd+1, NULL, &set, NULL, &ct);
-        //crv==0 means that socket is not available for writing
+        if(writeState==-2)
+            logger->Warning()<<"TCPSocketWriter: Writing cancelled";
+        return writeState;
     }
 
-    if(crv==0)
-    {
-        logger->Warning()<<"Writing cancelled";
-        return -1;
-    }
-
-    if(crv<0)
-    {
-        auto error=errno;
-        if(error==EINTR)//interrupted by signal
-            logger->Warning()<<"Writing (select) interrupted by signal";
-        else
-            logger->Warning()<<"Writing (select) failed with error: "<<strerror(error);
-        writeAllowed=false;
-        return -1;
-    }
-
-    //write data
+    //write data and check for errors
     auto dataWritten=write(fd,reinterpret_cast<const void*>(target),len);
     if(dataWritten==0)
     {
-        logger->Info()<<"Socket has been shutdown (write)"<<std::endl;
-        writeAllowed=false;
-        return -1;
+        writeState=-1;
+        return writeState;
     }
     if(dataWritten<len)
     {
         auto error=errno;
-        if(error==EINTR)//interrupted by signal
-            logger->Warning()<<"Writing interrupted by signal";
-        else
-            logger->Warning()<<"Writing failed with error: "<<strerror(error);
-        writeAllowed=false;
+        if(error!=EINTR)
+            logger->Warning()<<"TCPSocketWriter: Writing ended with error: "<<strerror(error);
+        writeState=-1;
     }
+    if(writeState>0) //reset write state on fully completed writes
+        writeState=0;
     return static_cast<int>(dataWritten);
+}
+
+int TCPSocketReader::GetReadState()
+{
+    if(readState<0)
+        return readState;
+
+    if(cancel->load())
+    {
+        readState = -2;
+        return readState;
+    }
+
+    epoll_event evt={};
+    auto rv=epoll_wait(epollFd,&evt,1,config.GetSocketTimeoutMS());
+
+    if(rv<0)
+    {
+        auto error=errno;
+        if(error!=EINTR)
+            logger->Info()<<"TCPSocketReader: GetReadState failed: "<<strerror(error);
+        rv=-1;
+    }
+    else if(rv>0 && (evt.events&EPOLLIN)==0)
+    {
+        long state=evt.events;
+        logger->Info()<<"TCPSocketReader: GetReadState: shutdown or error detected, epoll flags: "<<std::hex<<state;
+        rv=-1;
+    }
+
+    readState=rv;
+    return readState;
+}
+
+void TCPSocketReader::Shutdown()
+{
+    if(readState<-1)
+        return;
+    if(shutdown(fd,SHUT_RD)<0)
+        logger->Info()<<"TCPSocketReader: Socket shutdown failed: "<<strerror(errno);
+    readState=-2;
+}
+
+int TCPSocketWriter::GetWriteState()
+{
+    if(writeState<0)
+        return writeState;
+
+    if(cancel->load())
+    {
+        writeState = -2;
+        return -2;
+    }
+
+    epoll_event evt={};
+    auto rv=epoll_wait(epollFd,&evt,1,config.GetSocketTimeoutMS());
+
+    if(rv<0)
+    {
+        auto error=errno;
+        if(error!=EINTR)
+            logger->Info()<<"TCPSocketWriter: GetWriteState failed: "<<strerror(error);
+        rv=-1;
+    }
+    else if(rv>0 && (evt.events&EPOLLOUT)==0)
+    {
+        long state=evt.events;
+        logger->Info()<<"TCPSocketWriter: GetWriteState: shutdown or error detected, epoll flags: "<<std::hex<<state;
+        rv=-1;
+    }
+
+    writeState=rv;
+    return rv;
+}
+
+void TCPSocketWriter::Shutdown()
+{
+    if(writeState<-1)
+        return;
+    if(shutdown(fd,SHUT_WR)<0)
+        logger->Info()<<"TCPSocketWriter: Socket shutdown failed: "<<strerror(errno);
+    writeState=-2;
 }
 
 bool SocketClaimsCleaner::CloseUnclaimedSockets(std::shared_ptr<ILogger> &logger, const std::vector<SocketClaimState> &claimStates)
@@ -140,6 +250,9 @@ bool SocketClaimsCleaner::CloseUnclaimedSockets(std::shared_ptr<ILogger> &logger
                 logger->Error()<<"Failed to perform socket close: "<<strerror(errno);
                 result=false;
             }
+            else
+                logger->Info()<<"Socket closed: "<<cState.socketFD;
         }
     return result;
 }
+

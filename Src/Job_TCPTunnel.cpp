@@ -27,20 +27,57 @@ std::unique_ptr<const IJobResult> Job_TCPTunnel::Execute(std::shared_ptr<ILogger
 
     int buffSz=config.GetTCPBuffSz();
     auto buff=std::make_unique<unsigned char[]>(buffSz);
-    TCPSocketHelper reader(logger,config,state.socketClaimStates[isReader?1:0].socketFD,cancelled);
-    TCPSocketHelper writer(logger,config,state.socketClaimStates[isReader?0:1].socketFD,cancelled);
+    TCPSocketReader reader(logger,config,state.socketClaimStates[isReader?1:0].socketFD,cancelled);
+    TCPSocketWriter writer(logger,config,state.socketClaimStates[isReader?0:1].socketFD,cancelled);
 
-    int dr,dw=-1;
-
-    while(!cancelled->load())
+    //main loop
+    while(true)
     {
+        auto writerState=writer.GetWriteState();
+        if(writerState==-2)
+            break;
+        if(writerState<0)
+        {
+            logger->Info()<<(isReader?"(reader)":"(writer)")<<"!WS";
+            reader.Shutdown();
+            break;
+        }
+
+        auto readerState=reader.GetReadState();
+        if(readerState==-2)
+            break;
+        if(readerState<0)
+        {
+            logger->Info()<<(isReader?"(reader)":"(writer)")<<"!RS";
+            writer.Shutdown();
+            break;
+        }
+
+        if(readerState==0)
+        {
+            logger->Info()<<(isReader?"(reader)":"(writer)")<<"0RS";
+            continue;
+        }
+
         //read available data
-        dr=reader.ReadData(buff.get(),buffSz,true);
-        if(dr<1) //socket for reading was closed or shutdown, we must stop here
+        auto dr=reader.ReadData(buff.get(),buffSz,true);
+        if(dr==-2)
             break;
-        dw=writer.WriteData(buff.get(),dr);
-        if(dw<dr) //full write failed, we must stop
+        if(dr<1)
+        {
+            writer.Shutdown();
             break;
+        }
+
+        //write data, depending on writer state this may take some time
+        auto dw=writer.WriteData(buff.get(),dr);
+        if(dw==-2)
+            break;
+        if(dw<dr)
+        {
+            reader.Shutdown();
+            break;
+        }
     }
 
     return TerminalResultDisclaim(state);
