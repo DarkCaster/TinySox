@@ -22,6 +22,10 @@ class Config final : public IConfig
         bool udnsSRCSet;
         int TCPBuffSz;
         int linger;
+        int minCtSec;
+        int maxCtSec;
+        int rwTimeoutSec;
+        int hcTimeoutSec;
         std::unordered_set<IPEndpoint> listenAddrs;
         std::unordered_map<std::string,const User> users;
     public:
@@ -35,6 +39,11 @@ class Config final : public IConfig
         void SetUDNSSearchDomainIsSet(bool val);
         void SetTCPBuffSz(int sz);
         void SetLingerSec(int sz);
+        void SetMinCTimeSec(int time);
+        void SetMaxCTimeSec(int time);
+        void SetRWTimeSec(int time);
+        void SetHalfCloseTimeoutSec(int time);
+
         //from IConfig
         std::unordered_set<IPEndpoint> GetListenAddrs() const final;
         int GetSocketTimeoutMS() const final;
@@ -48,6 +57,10 @@ class Config final : public IConfig
         bool GetUDNSSearchDomainIsSet() const final;
         int GetTCPBuffSz() const final;
         int GetLingerSec() const final;
+        int GetMinCTimeSec() const final;
+        int GetMaxCTimeSec() const final;
+        int GetRWTimeoutSec() const final;
+        int GetHalfCloseTimeoutSec() const final;
 };
 
 #endif //CONFIG_H

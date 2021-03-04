@@ -50,6 +50,26 @@ void Config::SetLingerSec(int sz)
     linger=sz;
 }
 
+void Config::SetMinCTimeSec(int time)
+{
+    minCtSec=time;
+}
+
+void Config::SetMaxCTimeSec(int time)
+{
+    maxCtSec=time;
+}
+
+void Config::SetRWTimeSec(int time)
+{
+    rwTimeoutSec=time;
+}
+
+void Config::SetHalfCloseTimeoutSec(int time)
+{
+    hcTimeoutSec=time;
+}
+
 int Config::GetSocketTimeoutMS() const
 {
     return socketTimeout;
@@ -106,6 +126,26 @@ int Config::GetTCPBuffSz() const
 int Config::GetLingerSec() const
 {
     return linger;
+}
+
+int Config::GetMinCTimeSec() const
+{
+    return minCtSec;
+}
+
+int Config::GetMaxCTimeSec() const
+{
+    return maxCtSec;
+}
+
+int Config::GetRWTimeoutSec() const
+{
+    return rwTimeoutSec;
+}
+
+int Config::GetHalfCloseTimeoutSec() const
+{
+    return hcTimeoutSec;
 }
 
 std::unordered_set<IPEndpoint> Config::GetListenAddrs() const

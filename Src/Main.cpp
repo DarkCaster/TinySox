@@ -35,7 +35,11 @@ void usage(const std::string &self)
     std::cerr<<"    -dns <ipaddress> use external DNS server"<<std::endl;
     std::cerr<<"    -src <domain> search domain for use with external DNS"<<std::endl;
     std::cerr<<"    -bsz <bytes> size of TCP buffer used for transferring data"<<std::endl;
-    std::cerr<<"    -ct <seconds> timeout for flushing data when closing sockets, 30 - default, -1 to disable, 0 - close without flushing"<<std::endl;
+    std::cerr<<"    -cf <seconds> timeout for flushing data when closing sockets, 30 - default, -1 to disable, 0 - close without flushing"<<std::endl;
+    std::cerr<<"    -cmax <seconds> max total time for establishing connection"<<std::endl;
+    std::cerr<<"    -cmin <seconds> min time for single connection attempt (where there are multiple addresses resolved for provided domain)"<<std::endl;
+    std::cerr<<"    -dt <seconds> single connection data read/write timeout when actively transferring data (not when connection idle)"<<std::endl;
+    std::cerr<<"    -ht <seconds> connection idle timeout when only half of the tunnel is closed (sending or receiving part)"<<std::endl;
 }
 
 int param_error(const std::string &self, const std::string &message)
@@ -162,12 +166,49 @@ int main (int argc, char *argv[])
 
     //linger
     config.SetLingerSec(30);
-    if(args.find("-ct")!=args.end())
+    if(args.find("-cf")!=args.end())
     {
-        auto time=std::atoi(args["-ct"].c_str());
+        auto time=std::atoi(args["-cf"].c_str());
         if(time<-1||time>600)
             return param_error(argv[0],"Flush timeout value is invalid");
         config.SetLingerSec(time);
+    }
+
+    //connection timeouts
+    config.SetMinCTimeSec(5);
+    if(args.find("-cmin")!=args.end())
+    {
+        auto time=std::atoi(args["-cmin"].c_str());
+        if(time<1||time>60)
+            return param_error(argv[0],"Minimal connection timeout is invalid");
+        config.SetMinCTimeSec(time);
+    }
+
+    config.SetMaxCTimeSec(20);
+    if(args.find("-cmax")!=args.end())
+    {
+        auto time=std::atoi(args["-cmax"].c_str());
+        if(time<(config.GetMinCTimeSec()/1000)||time>120)
+            return param_error(argv[0],"Maximum connection timeout is invalid");
+        config.SetMaxCTimeSec(time);
+    }
+
+    config.SetRWTimeSec(60);
+    if(args.find("-dt")!=args.end())
+    {
+        auto time=std::atoi(args["-dt"].c_str());
+        if(time<1||time>7200)
+            return param_error(argv[0],"Data R|W timeout is invalid");
+        config.SetRWTimeSec(time);
+    }
+
+    config.SetHalfCloseTimeoutSec(30);
+    if(args.find("-hc")!=args.end())
+    {
+        auto time=std::atoi(args["-hc"].c_str());
+        if(time<1||time>7200)
+            return param_error(argv[0],"Half-closed connection timeout is invalid");
+        config.SetHalfCloseTimeoutSec(time);
     }
 
     StdioLoggerFactory logFactory;

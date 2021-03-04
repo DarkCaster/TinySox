@@ -26,6 +26,10 @@ class IConfig
         virtual bool GetUDNSSearchDomainIsSet() const = 0;
         virtual int GetTCPBuffSz() const = 0;
         virtual int GetLingerSec() const = 0;
+        virtual int GetMinCTimeSec() const = 0;
+        virtual int GetMaxCTimeSec() const = 0;
+        virtual int GetRWTimeoutSec() const = 0;
+        virtual int GetHalfCloseTimeoutSec() const = 0;
 };
 
 #endif
