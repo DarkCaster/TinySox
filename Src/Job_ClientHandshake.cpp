@@ -258,12 +258,26 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(std::shared_ptr<I
         if(destIPs.empty())
             logger->Warning()<<"No valid ip addresses to connect";
 
+        //calculate timeouts for connection attempts
+        auto ipCount=destIPs.size();
+        timeval ct;
+        if(ipCount!=0)
+        {
+            auto minTimeout=config.GetMinCTimeSec()*1000000L; //usec
+            auto proposedTimout=config.GetMaxCTimeSec()*1000000/static_cast<long>(ipCount);
+            if(proposedTimout<minTimeout)
+                proposedTimout=minTimeout;
+            ct.tv_sec=proposedTimout/1000000L;
+            ct.tv_usec=proposedTimout-ct.tv_sec*1000000L;
+        }
+
         //try connect to any ip-address from destIPs, create new socket claim
         for(auto &ip:destIPs)
         {
             //create socket
             auto target=socket(ip.isV6?AF_INET6:AF_INET,SOCK_STREAM,0);
-            SocketHelpers::TuneSocketParams(logger,target,config);
+            SocketHelpers::TuneSocketBaseParams(logger,target,config);
+            SocketHelpers::SetSocketCustomTimeouts(logger,target,ct);
 
             int cr=-1;
             if(ip.isV6)
@@ -316,6 +330,8 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(std::shared_ptr<I
                     return FailWithDisclaim(finalState.Get());
                 }
                 bindEP.Set(ep);
+                //set correct read-write timeouts
+                SocketHelpers::SetSocketDefaultTimeouts(logger,target,config);
                 //create new socket claim, update state
                 finalState.Set(finalState.Get().AddSocketWithClaim(target));
                 break;

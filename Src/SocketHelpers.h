@@ -50,7 +50,9 @@ class SocketHelpers
 {
     public:
         static bool CloseUnclaimedSockets(std::shared_ptr<ILogger> &logger, const std::vector<SocketClaimState> &claimStates);
-        static void TuneSocketParams(std::shared_ptr<ILogger> &logger, int fd, const IConfig &config);
+        static void TuneSocketBaseParams(std::shared_ptr<ILogger> &logger, int fd, const IConfig &config);
+        static void SetSocketDefaultTimeouts(std::shared_ptr<ILogger> &logger, int fd, const IConfig &config);
+        static void SetSocketCustomTimeouts(std::shared_ptr<ILogger> &logger, int fd, const timeval &tv);
 };
 
 #endif //SOCKET_HELPERS_H

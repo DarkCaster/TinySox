@@ -140,7 +140,8 @@ void TCPServerListener::Worker()
         }
 
         logger->Info()<<"Client connected"<<std::endl;
-        SocketHelpers::TuneSocketParams(logger,cSockFd,config);
+        SocketHelpers::TuneSocketBaseParams(logger,cSockFd,config);
+        SocketHelpers::SetSocketDefaultTimeouts(logger,cSockFd,config);
 
         //pass client socket FD to the external logic
         sender.SendMessage(this,JobCompleteMessage(NewClientJobResult(cSockFd)));
