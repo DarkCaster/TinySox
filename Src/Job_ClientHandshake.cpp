@@ -298,8 +298,11 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(std::shared_ptr<I
             if(cr<0)
             {
                 auto error=errno;
-                logger->Warning()<<"Failed to connect "<<ip<<" with error: "<<strerror(error);
-                if(error==ECONNREFUSED)
+                if(error!=EINPROGRESS)
+                    logger->Warning()<<"Failed to connect "<<ip<<" with error: "<<strerror(error);
+                else
+                    logger->Warning()<<"Connection attempt to "<<ip<<" timed out";
+                if(error==ECONNREFUSED||error==EINPROGRESS)
                     rep=0x05;
                 if(error==ENETUNREACH)
                     rep=0x03;
