@@ -23,6 +23,7 @@ class TCPCommHelper : public ICommHelper
     public:
         int Transfer(unsigned char * const target, const int len, const bool allowPartial) final;
         void Shutdown() final;
+        int GetStatus() final;
         void NotifyDataAvail();
         void NotifyHUP();
         void Cancel();

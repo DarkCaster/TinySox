@@ -63,18 +63,15 @@ int TCPCommHelper::Transfer(unsigned char* const target, const int len, const bo
         if(allowPartial && tSz>0)
             return len-dataLeft;
 
-        //check error
-        if(tSz<1)
-        {
-            auto error=errno;
+        //tSz<=0, so check error
+        auto error=errno;
 #if EAGAIN == EWOULDBLOCK
-            if(error!=EAGAIN)
-                status=-1;
+        if(error!=EAGAIN)
+            status=-1;
 #else
-            if(error!=EAGAIN && error!=EWOULDBLOCK)
-                status=-1; //error detected, cannot continue
+        if(error!=EAGAIN && error!=EWOULDBLOCK)
+            status=-1; //error detected, cannot continue
 #endif
-        }
 
         if(status<0)
             return status;
@@ -90,6 +87,18 @@ void TCPCommHelper::Shutdown()
     if(shutdown(fd,isReader?SHUT_RD:SHUT_WR)<0)
         logger->Info()<<(isReader?"TCPCommHelper(r): ":"TCPCommHelper(w) :")<<"Socket shutdown failed: "<<strerror(errno);
     status=-2;
+}
+
+int TCPCommHelper::GetStatus()
+{
+    {
+        std::lock_guard<std::mutex> lock(notifyLock);
+        if(extCnt==N_HUP)
+            return -1;
+        if(extCnt==N_CANCEL)
+            return -2;
+    }
+    return status;
 }
 
 void TCPCommHelper::NotifyDataAvail()

@@ -14,6 +14,7 @@ class ICommHelper
     public:
         virtual int Transfer(unsigned char * const target, const int len, const bool allowPartial) = 0;
         virtual void Shutdown() = 0;
+        virtual int GetStatus() = 0;
 };
 
 #endif //ICOMM_HELPER_H
