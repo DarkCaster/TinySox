@@ -13,6 +13,7 @@
 #include <atomic>
 #include <mutex>
 #include <unordered_map>
+#include <memory>
 
 class TCPCommService final: public ICommManager, public ICommService, public WorkerBase
 {

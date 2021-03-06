@@ -21,7 +21,11 @@ TCPCommService::TCPCommService(std::shared_ptr<ILogger> &_logger, IMessageSender
 
 CommHandler TCPCommService::GetHandler(const int fd)
 {
-
+    const std::lock_guard<std::mutex> guard(manageLock);
+    auto h=commHandlers.find(fd);
+    if(h==commHandlers.end())
+        return CommHandler{std::shared_ptr<ICommHelper>(),std::shared_ptr<ICommHelper>()};
+    return h->second;
 }
 
 int TCPCommService::ConnectAndRegisterSocket(const IPEndpoint &target, const timeval &timeout)
@@ -183,8 +187,10 @@ void TCPCommService::Worker()
         logger->Info()<<"Sending shutdown notifocations for active connection handlers: "<<commHandlers.size();
         for(auto &it:commHandlers)
         {
-            it.second.reader->Shutdown();
-            it.second.writer->Shutdown();
+            auto reader=reinterpret_cast<TCPCommHelper*>(it.second.reader.get());
+            auto writer=reinterpret_cast<TCPCommHelper*>(it.second.writer.get());
+            reader->Cancel();
+            writer->Cancel();
         }
     }
 

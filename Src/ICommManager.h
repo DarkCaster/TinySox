@@ -10,6 +10,7 @@ struct CommHandler
     public:
         std::shared_ptr<ICommHelper> reader;
         std::shared_ptr<ICommHelper> writer;
+        static bool IsValid(CommHandler &target) { return target.reader.get()!=nullptr && target.writer.get()!=nullptr; }
 };
 
 class ICommManager
