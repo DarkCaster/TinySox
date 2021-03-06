@@ -9,8 +9,10 @@
 #include "ICommManager.h"
 #include "ICommService.h"
 
+#include <sys/epoll.h>
 #include <atomic>
 #include <mutex>
+#include <unordered_map>
 
 class CommService final: public ICommManager, public ICommService, public WorkerBase
 {
@@ -21,6 +23,8 @@ class CommService final: public ICommManager, public ICommService, public Worker
         const int epollFd;
         std::mutex manageLock;
         std::atomic<bool> shutdownPending;
+        std::unique_ptr<epoll_event[]> events;
+        std::unordered_map<int,CommHandler> commHandlers;
     public:
         CommService(std::shared_ptr<ILogger> &_logger, IMessageSender &_sender, const IConfig &_config);
         //from ICommManager
