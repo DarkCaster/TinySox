@@ -6,6 +6,7 @@
 #include "ILogger.h"
 #include "IMessageSender.h"
 #include "IPEndpoint.h"
+#include "ICommService.h"
 
 #include <string>
 #include <atomic>
@@ -16,6 +17,7 @@ class TCPServerListener final : public WorkerBase
     private:
         std::shared_ptr<ILogger> logger;
         IMessageSender &sender;
+        ICommService &commService;
         const IConfig &config;
         const IPEndpoint endpoint;
         std::atomic<bool> shutdownPending;
@@ -23,7 +25,7 @@ class TCPServerListener final : public WorkerBase
         void HandleError(const std::string& message);
         void HandleError(int ec, const std::string& message);
     public:
-        TCPServerListener(std::shared_ptr<ILogger> &logger, IMessageSender &sender, const IConfig &config, const IPEndpoint &listenAt);
+        TCPServerListener(std::shared_ptr<ILogger> &logger, IMessageSender &sender, ICommService &commService, const IConfig &config, const IPEndpoint &listenAt);
     protected:
         //WorkerBase
         void Worker() final;

@@ -51,6 +51,7 @@ class SocketHelpers
     public:
         static bool CloseUnclaimedSockets(std::shared_ptr<ILogger> &logger, const std::vector<SocketClaimState> &claimStates);
         static void TuneSocketBaseParams(std::shared_ptr<ILogger> &logger, int fd, const IConfig &config);
+        static void SetSocketNonBlocking(std::shared_ptr<ILogger> &logger, int fd);
         static void SetSocketDefaultTimeouts(std::shared_ptr<ILogger> &logger, int fd, const IConfig &config);
         static void SetSocketCustomTimeouts(std::shared_ptr<ILogger> &logger, int fd, const timeval &tv);
         static void SetSocketFastShutdown(std::shared_ptr<ILogger> &logger, int fd);

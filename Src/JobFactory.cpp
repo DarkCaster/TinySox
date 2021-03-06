@@ -5,9 +5,11 @@
 
 #include <vector>
 
-JobFactory::JobFactory(std::shared_ptr<ILogger> &_logger, const IConfig &_config):
+JobFactory::JobFactory(std::shared_ptr<ILogger> &_logger, const IConfig &_config, ICommManager &_commManager, ICommService &_commService):
     logger(_logger),
-    config(_config)
+    config(_config),
+    commManager(_commManager),
+    commService(_commService)
 {
 }
 
@@ -27,7 +29,7 @@ std::vector<std::shared_ptr<IJob>> JobFactory::CreateJobsFromResult(const IJobRe
     if(source.resultType==JR_NEW_CLIENT)
     {
         auto result=static_cast<const INewClientJobResult&>(source);
-        return std::vector<std::shared_ptr<IJob>>{ std::make_shared<Job_ClientHandshake>(State().AddSocket(result.clientSocketFD),config) };
+        return std::vector<std::shared_ptr<IJob>>{ std::make_shared<Job_ClientHandshake>(commService,commManager,config,State().AddSocket(result.clientSocketFD)) };
     }
 
     //handhake and CONNECT socks command complete, next jobs will transfer data across newly created TCP tunnel

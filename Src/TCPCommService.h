@@ -30,7 +30,7 @@ class TCPCommService final: public ICommManager, public ICommService, public Wor
         //from ICommManager
         CommHandler GetHandler(const int fd) final;
         //from ICommService
-        int ConnectAndRegisterSocket(const IPEndpoint target, const timeval timeout) final;
+        int ConnectAndRegisterSocket(const IPEndpoint &target, const timeval &timeout) final;
         void RegisterActiveSocket(const int fd) final;
         void DeregisterSocket(const int fd) final;
     private:

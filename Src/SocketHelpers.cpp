@@ -283,6 +283,10 @@ void SocketHelpers::TuneSocketBaseParams(std::shared_ptr<ILogger> &logger, int f
     bsz=config.GetTCPBuffSz();
     if(setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &bsz, sizeof(bsz)))
         logger->Warning()<<"Failed to set SO_RCVBUF option to socket: "<<strerror(errno);
+}
+
+void SocketHelpers::SetSocketNonBlocking(std::shared_ptr<ILogger>& logger, int fd)
+{
     auto flags = fcntl(fd,F_GETFL,0);
     //set socket to be non-blocking
     if(flags<0)

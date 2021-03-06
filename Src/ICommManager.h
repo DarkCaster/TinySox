@@ -2,14 +2,12 @@
 #define ICOMM_MANAGER_H
 
 #include "ICommHelper.h"
-#include "TCPCommHelper.h"
 
 #include <memory>
 
 struct CommHandler
 {
     public:
-        bool isValid;
         std::shared_ptr<ICommHelper> reader;
         std::shared_ptr<ICommHelper> writer;
 };

@@ -1,5 +1,10 @@
 #include "TCPCommService.h"
+#include "TCPCommHelper.h"
+#include "SocketHelpers.h"
 
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <unistd.h>
 #include <cstring>
 
 class ShutdownMessage: public IShutdownMessage { public: ShutdownMessage(int _ec):IShutdownMessage(_ec){} };
@@ -19,19 +24,79 @@ CommHandler TCPCommService::GetHandler(const int fd)
 
 }
 
-int TCPCommService::ConnectAndRegisterSocket(const IPEndpoint target, const timeval timeout)
+int TCPCommService::ConnectAndRegisterSocket(const IPEndpoint &target, const timeval &timeout)
 {
+    //create socket
+    auto fd=socket(target.address.isV6?AF_INET6:AF_INET,SOCK_STREAM,0);
+    if(fd<0)
+    {
+        HandleError(errno,"Failed to create new socket: ");
+        return -10;
+    }
 
+    SocketHelpers::TuneSocketBaseParams(logger,fd,config);
+    SocketHelpers::SetSocketCustomTimeouts(logger,fd,timeout);
+
+    int cr=-1;
+    if(target.address.isV6)
+    {
+        sockaddr_in6 v6sa={};
+        target.address.ToSA(&v6sa);
+        v6sa.sin6_port=htons(target.port);
+        cr=connect(fd,reinterpret_cast<sockaddr*>(&v6sa), sizeof(v6sa));
+    }
+    else
+    {
+        sockaddr_in v4sa={};
+        target.address.ToSA(&v4sa);
+        v4sa.sin_port=htons(target.port);
+        cr=connect(fd,reinterpret_cast<sockaddr*>(&v4sa), sizeof(v4sa));
+    }
+
+    if(cr<0)
+    {
+        auto error=errno;
+        if(error!=EINPROGRESS)
+            logger->Warning()<<"Failed to connect "<<target.address<<" with error: "<<strerror(error);
+        else
+            logger->Warning()<<"Connection attempt to "<<target.address<<" timed out";
+        if(error==ECONNREFUSED||error==EINPROGRESS)
+            return -1;
+        if(error==ENETUNREACH)
+            return -2;
+        if(close(fd)!=0)
+        {
+            HandleError(error,"Failed to perform proper socket close after connection failure: ");
+            return -11;
+        }
+    }
+
+    RegisterActiveSocket(fd);
+    return fd;
 }
 
 void TCPCommService::RegisterActiveSocket(const int fd)
 {
-
+    //set some parameters to make this socket compatible with non-blocking io and work with TCPCommHelper
+    SocketHelpers::TuneSocketBaseParams(logger,fd,config);
+    SocketHelpers::SetSocketDefaultTimeouts(logger,fd,config);
+    SocketHelpers::SetSocketNonBlocking(logger,fd);
+    //create comm-helper objects and setup this socket for epoll listening
+    const std::lock_guard<std::mutex> guard(manageLock);
+    CommHandler handler;
+    handler.reader=std::make_shared<TCPCommHelper>(logger,config,fd,true);
+    handler.writer=std::make_shared<TCPCommHelper>(logger,config,fd,false);
+    commHandlers.insert({fd,handler});
+    epoll_event ev;
+    ev.events=EPOLLIN|EPOLLOUT|EPOLLRDHUP|EPOLLET;
+    ev.data.fd=fd;
+    if(epoll_ctl(epollFd,EPOLL_CTL_ADD,fd,&ev)<0)
+        HandleError(errno,"Failed to register socket for epoll processing: ");
 }
 
 void TCPCommService::DeregisterSocket(const int fd)
 {
-
+    //close on deregister
 }
 
 void TCPCommService::HandleError(int ec, const std::string &message)

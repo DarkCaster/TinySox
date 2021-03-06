@@ -14,9 +14,10 @@ class ShutdownMessage: public IShutdownMessage { public: ShutdownMessage(int _ec
 class JobCompleteMessage: public IJobCompleteMessage { public: JobCompleteMessage(const IJobResult &_result):IJobCompleteMessage(_result){} };
 class NewClientJobResult: public INewClientJobResult { public: NewClientJobResult(const int fd):INewClientJobResult(fd){} };
 
-TCPServerListener::TCPServerListener(std::shared_ptr<ILogger> &_logger, IMessageSender &_sender, const IConfig &_config, const IPEndpoint &_listenAt):
+TCPServerListener::TCPServerListener(std::shared_ptr<ILogger> &_logger, IMessageSender &_sender, ICommService &_commService, const IConfig &_config, const IPEndpoint &_listenAt):
     logger(_logger),
     sender(_sender),
+    commService(_commService),
     config(_config),
     endpoint(_listenAt)
 {
@@ -139,11 +140,9 @@ void TCPServerListener::Worker()
             continue;
         }
 
-        logger->Info()<<"Client connected"<<std::endl;
-        SocketHelpers::TuneSocketBaseParams(logger,cSockFd,config);
-        SocketHelpers::SetSocketDefaultTimeouts(logger,cSockFd,config);
-
         //pass client socket FD to the external logic
+        logger->Info()<<"Client connected"<<std::endl;
+        commService.RegisterActiveSocket(cSockFd);
         sender.SendMessage(this,JobCompleteMessage(NewClientJobResult(cSockFd)));
     }
 

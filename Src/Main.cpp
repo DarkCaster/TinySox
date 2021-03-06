@@ -228,13 +228,13 @@ int main (int argc, char *argv[])
 
     //create instances for main logic
     JobWorkerFactory jobWorkerFactory;
-    JobFactory jobFactory(jobFactoryLogger,config);
+    TCPCommService tcpCommService(tcpServiceLogger,messageBroker,config);
+    JobFactory jobFactory(jobFactoryLogger,config,tcpCommService,tcpCommService);
     JobDispatcher jobDispatcher(dispLogger,logFactory,jobWorkerFactory,jobFactory,messageBroker,config);
     messageBroker.AddSubscriber(jobDispatcher);
-    TCPCommService tcpCommService(tcpServiceLogger,messageBroker,config);
     std::vector<std::shared_ptr<TCPServerListener>> serverListeners;
     for(auto &addr:config.GetListenAddrs())
-        serverListeners.push_back(std::make_shared<TCPServerListener>(listenerLogger,messageBroker,config,addr));
+        serverListeners.push_back(std::make_shared<TCPServerListener>(listenerLogger,messageBroker,tcpCommService,config,addr));
 
     //create sigset_t struct with signals
     sigset_t sigset;

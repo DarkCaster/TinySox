@@ -19,8 +19,8 @@ class TCPCommHelper : public ICommHelper
         uint64_t extCnt;
         uint64_t intCnt;
         int status;
-        TCPCommHelper(std::shared_ptr<ILogger> &_logger, const IConfig &_config, const int sockFD, const bool isReader);
     public:
+        TCPCommHelper(std::shared_ptr<ILogger> &_logger, const IConfig &_config, const int sockFD, const bool isReader);
         int Transfer(unsigned char * const target, const int len, const bool allowPartial) final;
         void Shutdown() final;
         int GetStatus() final;

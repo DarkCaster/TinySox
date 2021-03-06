@@ -7,7 +7,7 @@
 class ICommService
 {
     public:
-        virtual int ConnectAndRegisterSocket(const IPEndpoint target, const timeval timeout) = 0;
+        virtual int ConnectAndRegisterSocket(const IPEndpoint &target, const timeval &timeout) = 0;
         virtual void RegisterActiveSocket(const int fd) = 0;
         virtual void DeregisterSocket(const int fd) = 0;
 };

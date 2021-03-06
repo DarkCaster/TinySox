@@ -11,7 +11,9 @@
 class JobTerminalResult final: public IJobTerminalResult{ public: JobTerminalResult(const State &_state):IJobTerminalResult(_state){} };
 class ModeConnectJobResult final: public IModeConnectJobResult{ public: ModeConnectJobResult(const State &_state):IModeConnectJobResult(_state){} };
 
-Job_ClientHandshake::Job_ClientHandshake(const State &_state, const IConfig &_config):
+Job_ClientHandshake::Job_ClientHandshake(ICommService &_commService, ICommManager &_commManager, const IConfig &_config, const State &_state):
+    commService(_commService),
+    commManager(_commManager),
     config(_config),
     state(_state.ClaimAllSockets())
 {
@@ -274,41 +276,13 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(std::shared_ptr<I
         //try connect to any ip-address from destIPs, create new socket claim
         for(auto &ip:destIPs)
         {
-            //create socket
-            auto target=socket(ip.isV6?AF_INET6:AF_INET,SOCK_STREAM,0);
-            SocketHelpers::TuneSocketBaseParams(logger,target,config);
-            SocketHelpers::SetSocketCustomTimeouts(logger,target,ct);
-
-            int cr=-1;
-            if(ip.isV6)
+            auto target=commService.ConnectAndRegisterSocket(IPEndpoint(ip,port),ct);
+            if(target<0)
             {
-                sockaddr_in6 v6sa={};
-                ip.ToSA(&v6sa);
-                v6sa.sin6_port=htons(port);
-                cr=connect(target,reinterpret_cast<sockaddr*>(&v6sa), sizeof(v6sa));
-            }
-            else
-            {
-                sockaddr_in v4sa={};
-                ip.ToSA(&v4sa);
-                v4sa.sin_port=htons(port);
-                cr=connect(target,reinterpret_cast<sockaddr*>(&v4sa), sizeof(v4sa));
-            }
-
-            if(cr<0)
-            {
-                auto error=errno;
-                if(error!=EINPROGRESS)
-                    logger->Warning()<<"Failed to connect "<<ip<<" with error: "<<strerror(error);
-                else
-                    logger->Warning()<<"Connection attempt to "<<ip<<" timed out";
-                if(error==ECONNREFUSED||error==EINPROGRESS)
+                if(target==-1)
                     rep=0x05;
-                if(error==ENETUNREACH)
+                if(target==-2)
                     rep=0x03;
-                if(close(target)!=0)
-                    logger->Error()<<"Failed to perform proper socket close after connection failure: "<<strerror(errno);
-                return FailWithDisclaim(finalState.Get());
             }
             else
             {
@@ -333,8 +307,6 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(std::shared_ptr<I
                     return FailWithDisclaim(finalState.Get());
                 }
                 bindEP.Set(ep);
-                //set correct read-write timeouts
-                SocketHelpers::SetSocketDefaultTimeouts(logger,target,config);
                 //create new socket claim, update state
                 finalState.Set(finalState.Get().AddSocketWithClaim(target));
                 break;

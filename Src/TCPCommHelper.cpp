@@ -14,8 +14,6 @@ TCPCommHelper::TCPCommHelper(std::shared_ptr<ILogger> &_logger, const IConfig &_
     extCnt=0;
     intCnt=0;
     status=0;
-    SocketHelpers::TuneSocketBaseParams(logger,fd,config);
-    SocketHelpers::SetSocketDefaultTimeouts(logger,fd,config);
 }
 
 int TCPCommHelper::Transfer(unsigned char* const target, const int len, const bool allowPartial)
