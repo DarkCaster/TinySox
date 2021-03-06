@@ -7,6 +7,7 @@
 #include "JobWorkerFactory.h"
 #include "JobFactory.h"
 #include "TCPServerListener.h"
+#include "TCPCommService.h"
 #include "User.h"
 #include "Config.h"
 
@@ -216,10 +217,11 @@ int main (int argc, char *argv[])
     auto dispLogger=logFactory.CreateLogger("Dispatcher");
     auto jobFactoryLogger=logFactory.CreateLogger("JobFactory");
     auto listenerLogger=logFactory.CreateLogger("Listener");
+    auto tcpServiceLogger=logFactory.CreateLogger("TCPCommSvc");
 
     mainLogger->Info()<<"Starting up";
 
-    //configure essential stuff
+    //configure the most essential stuff
     MessageBroker messageBroker;
     ShutdownHandler shutdownHandler;
     messageBroker.AddSubscriber(shutdownHandler);
@@ -229,7 +231,7 @@ int main (int argc, char *argv[])
     JobFactory jobFactory(jobFactoryLogger,config);
     JobDispatcher jobDispatcher(dispLogger,logFactory,jobWorkerFactory,jobFactory,messageBroker,config);
     messageBroker.AddSubscriber(jobDispatcher);
-
+    TCPCommService tcpCommService(tcpServiceLogger,messageBroker,config);
     std::vector<std::shared_ptr<TCPServerListener>> serverListeners;
     for(auto &addr:config.GetListenAddrs())
         serverListeners.push_back(std::make_shared<TCPServerListener>(listenerLogger,messageBroker,config,addr));
@@ -245,6 +247,7 @@ int main (int argc, char *argv[])
 
     //start background workers, or perform post-setup init
     jobDispatcher.Startup();
+    tcpCommService.Startup();
     for(auto &listener:serverListeners)
         listener->Startup();
 
@@ -278,11 +281,13 @@ int main (int argc, char *argv[])
     //request shutdown of background workers
     for(auto &listener:serverListeners) //server TCP listeners will be shutdown first
         listener->RequestShutdown();
+    tcpCommService.RequestShutdown();
     jobDispatcher.RequestShutdown();
 
     //wait for background workers shutdown complete
     for(auto &listener:serverListeners)
         listener->Shutdown();
+    tcpCommService.Shutdown();
     jobDispatcher.Shutdown();
 
     return  0;
