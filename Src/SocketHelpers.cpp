@@ -3,6 +3,7 @@
 #include <cstring>
 #include <cerrno>
 #include <unistd.h>
+#include <fcntl.h>
 #include <sys/socket.h>
 
 TCPSocketReader::TCPSocketReader(std::shared_ptr<ILogger> &_logger, const IConfig &_config, const int _fd, std::shared_ptr<std::atomic<bool>> &_cancel):
