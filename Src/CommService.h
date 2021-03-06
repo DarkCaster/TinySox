@@ -1,5 +1,5 @@
-#ifndef COMM_SERVICE_H
-#define COMM_SERVICE_H
+#ifndef TCP_COMM_SERVICE_H
+#define TCP_COMM_SERVICE_H
 
 #include "ILogger.h"
 #include "IConfig.h"
@@ -14,7 +14,7 @@
 #include <mutex>
 #include <unordered_map>
 
-class CommService final: public ICommManager, public ICommService, public WorkerBase
+class TCPCommService final: public ICommManager, public ICommService, public WorkerBase
 {
     private:
         std::shared_ptr<ILogger> logger;
@@ -26,7 +26,7 @@ class CommService final: public ICommManager, public ICommService, public Worker
         std::unique_ptr<epoll_event[]> events;
         std::unordered_map<int,CommHandler> commHandlers;
     public:
-        CommService(std::shared_ptr<ILogger> &_logger, IMessageSender &_sender, const IConfig &_config);
+        TCPCommService(std::shared_ptr<ILogger> &logger, IMessageSender &sender, const IConfig &config);
         //from ICommManager
         CommHandler GetHandler(const int fd) final;
         //from ICommService
@@ -40,4 +40,4 @@ class CommService final: public ICommManager, public ICommService, public Worker
         void OnShutdown() final;
 };
 
-#endif //COMM_SERVICE_H
+#endif //TCP_COMM_SERVICE_H

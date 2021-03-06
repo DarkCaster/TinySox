@@ -4,7 +4,7 @@
 
 class ShutdownMessage: public IShutdownMessage { public: ShutdownMessage(int _ec):IShutdownMessage(_ec){} };
 
-CommService::CommService(std::shared_ptr<ILogger>& _logger, IMessageSender& _sender, const IConfig& _config):
+TCPCommService::TCPCommService(std::shared_ptr<ILogger> &_logger, IMessageSender &_sender, const IConfig &_config):
     logger(_logger),
     sender(_sender),
     config(_config),
@@ -14,33 +14,33 @@ CommService::CommService(std::shared_ptr<ILogger>& _logger, IMessageSender& _sen
     events=std::make_unique<epoll_event[]>(config.GetWorkersSpawnCount());
 }
 
-CommHandler CommService::GetHandler(const int fd)
+CommHandler TCPCommService::GetHandler(const int fd)
 {
 
 }
 
-int CommService::ConnectAndRegisterSocket(const IPEndpoint target, const timeval timeout)
+int TCPCommService::ConnectAndRegisterSocket(const IPEndpoint target, const timeval timeout)
 {
 
 }
 
-void CommService::RegisterActiveSocket(const int fd)
+void TCPCommService::RegisterActiveSocket(const int fd)
 {
 
 }
 
-void CommService::DeregisterSocket(const int fd)
+void TCPCommService::DeregisterSocket(const int fd)
 {
 
 }
 
-void CommService::HandleError(int ec, const std::string &message)
+void TCPCommService::HandleError(int ec, const std::string &message)
 {
     logger->Error()<<message<<strerror(ec)<<std::endl;
     sender.SendMessage(this,ShutdownMessage(ec));
 }
 
-void CommService::Worker()
+void TCPCommService::Worker()
 {
     if(epollFd<0)
     {
@@ -126,7 +126,7 @@ void CommService::Worker()
     logger->Info()<<"Epoll event-processing worker terminated"<<std::endl;
 }
 
-void CommService::OnShutdown()
+void TCPCommService::OnShutdown()
 {
     shutdownPending.store(true);
 }
