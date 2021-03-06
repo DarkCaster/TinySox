@@ -100,7 +100,15 @@ void TCPCommService::RegisterActiveSocket(const int fd)
 
 void TCPCommService::DeregisterSocket(const int fd)
 {
-    //close on deregister
+    const std::lock_guard<std::mutex> guard(manageLock);
+    auto h=commHandlers.find(fd);
+    if(h!=commHandlers.end())
+    {
+        //close on deregister
+        if(close(fd)!=0)
+            logger->Error()<<"Failed to close socket fd "<<fd<<": "<<strerror(errno);
+        commHandlers.erase(h);
+    }
 }
 
 void TCPCommService::HandleError(int ec, const std::string &message)
