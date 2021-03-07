@@ -154,11 +154,11 @@ int main (int argc, char *argv[])
     config.SetBaseUDNSContext(&dns_defctx);
 
     //tcp buff size
-    config.SetTCPBuffSz(16384);
+    config.SetTCPBuffSz(65536);
     if(args.find("-bsz")!=args.end())
     {
         auto bsz=std::atoi(args["-bsz"].c_str());
-        if(bsz<128||bsz>65536)
+        if(bsz<128||bsz>524288)
             return param_error(argv[0],"TCP buffer size is invalid");
         config.SetTCPBuffSz(bsz);
     }
