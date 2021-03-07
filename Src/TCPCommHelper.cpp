@@ -30,7 +30,8 @@ int TCPCommHelper::Transfer(unsigned char* const target, const int len, const bo
         //wait for data availability or cancel is triggered
         std::unique_lock<std::mutex> lock(notifyLock);
         while(extCnt<=intCnt)
-            notifyTrigger.wait(lock);
+            if(notifyTrigger.wait_for(lock,std::chrono::milliseconds(config.GetSocketTimeoutMS()))==std::cv_status::timeout)
+                return 0;
         const auto curCnt=extCnt;
         lock.unlock();
 

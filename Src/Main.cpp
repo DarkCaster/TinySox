@@ -118,7 +118,7 @@ int main (int argc, char *argv[])
         config.SetWorkersSpawnCount(cnt);
     }
 
-    config.SetServiceIntervalMS(config.GetSocketTimeoutMS());
+    config.SetServiceIntervalMS(500);
     if(args.find("-wt")!=args.end())
     {
         int cnt=std::atoi(args["-wt"].c_str());
