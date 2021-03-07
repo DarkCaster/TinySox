@@ -39,8 +39,8 @@ std::vector<std::shared_ptr<IJob>> JobFactory::CreateJobsFromResult(const IJobRe
     {
         auto result=static_cast<const IModeConnectJobResult&>(source);
         std::vector<std::shared_ptr<IJob>> jobs;
-        jobs.push_back(std::make_shared<Job_TCPTunnel>(result.state,config,true));
-        jobs.push_back(std::make_shared<Job_TCPTunnel>(result.state,config,false));
+        jobs.push_back(std::make_shared<Job_TCPTunnel>(commManager,result.state,config,true));
+        jobs.push_back(std::make_shared<Job_TCPTunnel>(commManager,result.state,config,false));
         return jobs;
     }
 

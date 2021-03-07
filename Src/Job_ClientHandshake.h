@@ -19,7 +19,6 @@ class Job_ClientHandshake final : public IJob
         ICommManager &commManager;
         const IConfig &config;
         const State state;
-        std::shared_ptr<std::atomic<bool>> cancelled;
     public:
         Job_ClientHandshake(ICommService &commService, ICommManager &commManager, const IConfig &config, const State &state);
         //from IJob

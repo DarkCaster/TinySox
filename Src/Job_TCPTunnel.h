@@ -7,6 +7,7 @@
 #include "IConfig.h"
 #include "ILogger.h"
 #include "State.h"
+#include "ICommManager.h"
 
 #include <atomic>
 #include <memory>
@@ -14,12 +15,13 @@
 class Job_TCPTunnel final : public IJob
 {
     private:
+        ICommManager &commManager;
         const IConfig &config;
         const State state;
         const bool isReader;
-        std::shared_ptr<std::atomic<bool>> cancelled;
+        std::atomic<bool> cancel;
     public:
-        Job_TCPTunnel(const State &state, const IConfig &config, const bool isReader);
+        Job_TCPTunnel(ICommManager &commManager, const State &state, const IConfig &config, const bool isReader);
         //from IJob
         std::unique_ptr<const IJobResult> Execute(std::shared_ptr<ILogger> logger) final;
         void Cancel(std::shared_ptr<ILogger> logger) final;

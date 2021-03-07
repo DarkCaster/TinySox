@@ -16,6 +16,13 @@ TCPCommHelper::TCPCommHelper(std::shared_ptr<ILogger> &_logger, const IConfig &_
     status=0;
 }
 
+static void SetSocketFastShutdown(std::shared_ptr<ILogger> &logger, int fd)
+{
+    linger cLinger={1,0}; //to save time on shutdown
+    if (setsockopt(fd, SOL_SOCKET, SO_LINGER, &cLinger, sizeof(linger))!=0)
+        logger->Warning()<<"Failed to set SO_LINGER option to socket: "<<strerror(errno);
+}
+
 int TCPCommHelper::Transfer(unsigned char* const target, const int len, const bool allowPartial)
 {
     if(status<0)
@@ -38,7 +45,7 @@ int TCPCommHelper::Transfer(unsigned char* const target, const int len, const bo
         //immediate return if cancel triggered, do not allow to transfer anything next time
         if(curCnt==N_CANCEL)
         {
-            SocketHelpers::SetSocketFastShutdown(logger,fd);
+            SetSocketFastShutdown(logger,fd);
             status=-2;
             return -2;
         }

@@ -16,8 +16,6 @@ Job_ClientHandshake::Job_ClientHandshake(ICommService &_commService, ICommManage
     config(_config),
     state(_state.ClaimAllSockets())
 {
-    cancelled=std::make_shared<std::atomic<bool>>();
-    cancelled->store(false);
 }
 
 static std::unique_ptr<const IJobResult> FailWithDisclaim(const State &state)
@@ -44,6 +42,11 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(std::shared_ptr<I
 
     //dumb abstraction for reading/writing data via sockets
     auto handler=commManager.GetHandler(state.socketClaimStates[0].socketFD);
+    if(!CommHandler::IsValid(handler))
+    {
+        logger->Error()<<("Invalid CommHandler for performing socks handshake!");
+        return FailWithDisclaim(state);
+    }
 
     const int BUFF_LEN = 512; //this should be enough for any response
     unsigned char buff[BUFF_LEN]={};
@@ -328,7 +331,7 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(std::shared_ptr<I
     //send client response
     if(handler.writer->Transfer(buff,respLen,false)<respLen)
     {
-        logger->Error()<<"Failed to send response to client";
+        logger->Warning()<<"Failed to send response to client";
         return FailWithDisclaim(finalState.Get());
     }
 
@@ -339,8 +342,7 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(std::shared_ptr<I
         return FailWithDisclaim(finalState.Get());
 }
 
-void Job_ClientHandshake::Cancel(std::shared_ptr<ILogger> logger)
+//nothing to do here for now
+void Job_ClientHandshake::Cancel(std::shared_ptr<ILogger>)
 {
-    if(!cancelled->exchange(true))
-        logger->Warning()<<"Cancelling ClientHandshake job";
 }
