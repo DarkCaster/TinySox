@@ -34,54 +34,43 @@ std::unique_ptr<const IJobResult> Job_TCPTunnel::Execute(std::shared_ptr<ILogger
         return TerminalResultDisclaim(state);
     }
 
+    //logger->Info()<<(isReader?"(reader)":"(writer)")<<"Started tunnel rID: "<<state.handlerClaimStates[isReader?1:0].handlerID<<" wID: "<<state.handlerClaimStates[isReader?0:1].handlerID;
+
     //main loop
     while(!cancel.load())
     {
         //get writer-end current status
         auto status=wHandler.writer->GetStatus();
         if(status<0)
-        {
-            logger->Info()<<(isReader?"(reader)":"(writer)")<<"!WS:"<<status;
             break;
-        }
 
         //try to read something from reader-end
         auto dr=rHandler.reader->Transfer(buff.get(),buffSz,true);
         if(dr<0)
-        {
-            logger->Info()<<(isReader?"(reader)":"(writer)")<<"!RR:"<<dr;
             break;
-        }
 
         if(dr==0)
-        {
-            logger->Info()<<(isReader?"(reader)":"(writer)")<<"0RS";
             continue;
-        }
 
         //try to write data we read to writer-end
         status=0;
         while(status==0)
         {
             status=wHandler.writer->Transfer(buff.get(),dr,false);
+            //also track reader status
             if(status==0)
-            {
                 status=rHandler.reader->GetStatus();
-                if(status<0)
-                    logger->Info()<<(isReader?"(reader)":"(writer)")<<"!RS:"<<status;
-            }
         }
 
+        //write failed, or reader is gone
         if(status<0)
-        {
-            logger->Info()<<(isReader?"(reader)":"(writer)")<<"!WW:"<<dr;
             break;
-        }
     }
 
     rHandler.reader->Shutdown();
     wHandler.writer->Shutdown();
 
+    //logger->Info()<<(isReader?"(reader)":"(writer)")<<"Closing tunnel rID: "<<state.handlerClaimStates[isReader?1:0].handlerID<<" wID: "<<state.handlerClaimStates[isReader?0:1].handlerID;
     return TerminalResultDisclaim(state);
 }
 

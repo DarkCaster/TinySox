@@ -142,6 +142,7 @@ uint64_t TCPCommService::CreateHandlerFromSocket(const int fd)
     ev.data.u64=id;
     if(epoll_ctl(epollFd,EPOLL_CTL_ADD,fd,&ev)<0)
         HandleError(errno,"Failed to register socket for epoll processing: ");
+    //logger->Info()<<"Created new handler id: "<<id;
     return id;
 }
 
@@ -151,6 +152,7 @@ void TCPCommService::DisposeHandler(const uint64_t id)
     auto h=commHandlers.find(id);
     if(h!=commHandlers.end())
     {
+        //logger->Info()<<"Disposing handler id: "<<id;
         auto fd=h->second.fd;
         commHandlers.erase(h);
         //close on deregister
@@ -159,6 +161,8 @@ void TCPCommService::DisposeHandler(const uint64_t id)
         if(close(fd)!=0)
             HandleError(errno,"Failed to close socket: ");
     }
+    else
+        logger->Error()<<"Cannot dispose already disposed handler id: "<<id;
 }
 
 void TCPCommService::HandleError(int ec, const std::string &message)
@@ -205,11 +209,10 @@ void TCPCommService::Worker()
 
                 //get comm-helper for event
                 auto h=commHandlers.find(id);
+
+                //skip events that may have left from already disposed handlers
                 if(h==commHandlers.end())
-                {
-                    logger->Warning()<<"Failed to process event from not registered handler id: "<<id;
                     continue;
-                }
 
                 //handle events, modify epoll interest-list, send notifications to reader/writer
                 auto reader=reinterpret_cast<TCPCommHelper*>(h->second.reader.get());

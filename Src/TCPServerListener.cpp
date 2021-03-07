@@ -141,13 +141,14 @@ void TCPServerListener::Worker()
         }
 
         //pass client socket FD to the external logic
-        logger->Info()<<"Client connected"<<std::endl;
+        logger->Info()<<"Client connected";
         auto handler=commService.CreateHandlerFromSocket(cSockFd);
         if(handler>HANDLER_ERROR)
         {
             HandleError("Error registering handler for incoming connection socket");
             return;
         }
+        //logger->Info()<<"Listener: new client handler id: "<<handler;
         sender.SendMessage(this,JobCompleteMessage(NewClientJobResult(handler)));
     }
 

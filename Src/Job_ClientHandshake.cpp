@@ -296,6 +296,7 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(std::shared_ptr<I
                     return FailWithDisclaim(finalState.Get());
                 }
                 //create new socket claim, update state
+                //logger->Info()<<"Handshake: adding new target handler id: "<<target;
                 finalState.Set(finalState.Get().AddHandlerWithClaim(target));
                 //get BND.ADDR and BND.PORT
                 sockaddr sa;
