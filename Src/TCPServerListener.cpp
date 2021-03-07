@@ -116,7 +116,7 @@ void TCPServerListener::Worker()
         fd_set lSet;
         FD_ZERO(&lSet);
         FD_SET(lSockFd, &lSet);
-        auto lt = config.GetSocketTimeoutTV();
+        auto lt = config.GetServiceIntervalTV();
         auto lrv = select(lSockFd+1, &lSet, NULL, NULL, &lt);
         if(lrv==0) //no incoming connection detected
             continue;

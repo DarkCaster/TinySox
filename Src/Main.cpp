@@ -79,10 +79,8 @@ int main (int argc, char *argv[])
 
     Config config;
 
-    //timeouts used by background workers for network operations and some other events
-    //increasing this time will slow down reaction to some internal and external events
-    //decreasing this time too much will cause high cpu usage
-    config.SetSocketTimeoutMS(1000);
+    //TODO: setup via params
+    config.SetSocketTimeoutMS(5000);
 
     //parse port number
     if(args.find("-p")==args.end())
