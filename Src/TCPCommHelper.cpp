@@ -10,7 +10,7 @@ TCPCommHelper::TCPCommHelper(std::shared_ptr<ILogger> &_logger, const IConfig &_
     fd(sockFD),
     isReader(_isReader)
 {
-    extCnt=0;
+    extCnt=1; //first transfer will try to read/write data, and block only after second attempt
     intCnt=0;
     status=0;
 }
@@ -69,11 +69,11 @@ int TCPCommHelper::Transfer(unsigned char* const target, const int len, const bo
             return len-dataLeft;
 
         //tSz<=0, so check error
-        auto error=errno;
 #if EAGAIN == EWOULDBLOCK
-        if(error!=EAGAIN)
+        if(errno!=EAGAIN)
             status=-1;
 #else
+        auto error=errno;
         if(error!=EAGAIN && error!=EWOULDBLOCK)
             status=-1; //error detected, cannot continue
 #endif
