@@ -104,6 +104,11 @@ uint64_t TCPCommService::ConnectAndCreateHandler(const IPEndpoint &target, const
     if(cr<0)
     {
         auto error=errno;
+        if(close(fd)!=0)
+        {
+            HandleError(error,"Failed to perform proper socket close after connection failure: ");
+            return HANDLER_ERROR_OTHER;
+        }
         if(error!=EINPROGRESS)
             logger->Warning()<<"Failed to connect "<<target.address<<" with error: "<<strerror(error);
         else
@@ -112,11 +117,7 @@ uint64_t TCPCommService::ConnectAndCreateHandler(const IPEndpoint &target, const
             return HANDLER_ERROR_CONN_REFUSED;
         if(error==ENETUNREACH)
             return HANDLER_ERROR_NET_UNAVAIL;
-        if(close(fd)!=0)
-        {
-            HandleError(error,"Failed to perform proper socket close after connection failure: ");
-            return HANDLER_ERROR_OTHER;
-        }
+        return HANDLER_ERROR_OTHER;
     }
 
     return CreateHandlerFromSocket(fd);
@@ -206,7 +207,6 @@ void TCPCommService::Worker()
                 auto h=commHandlers.find(id);
                 if(h==commHandlers.end())
                 {
-                    //should not happen
                     logger->Warning()<<"Failed to process event from not registered handler id: "<<id;
                     continue;
                 }
@@ -241,6 +241,7 @@ void TCPCommService::Worker()
         logger->Info()<<"Sending shutdown notifocations for active connection handlers: "<<commHandlers.size();
         for(auto &it:commHandlers)
         {
+            logger->Warning()<<"Sending cancel to handler id: "<<it.first;
             auto reader=reinterpret_cast<TCPCommHelper*>(it.second.reader.get());
             auto writer=reinterpret_cast<TCPCommHelper*>(it.second.writer.get());
             reader->Cancel();

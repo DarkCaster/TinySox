@@ -23,7 +23,7 @@ static std::unique_ptr<const IJobResult> FailWithDisclaim(const State &state)
     return std::make_unique<const JobTerminalResult>(state.DisclaimAllHandlers());
 }
 
-std::unique_ptr<const IJobResult> SendAuthFailWithDisclaim(const State &state, std::shared_ptr<ICommHelper> writer)
+static std::unique_ptr<const IJobResult> SendAuthFailWithDisclaim(const State &state, std::shared_ptr<ICommHelper> writer)
 {
     unsigned char buff[2];
     buff[0]=0x01;
