@@ -44,12 +44,12 @@ class IJobTerminalResult : public IJobIntermediateResult
 class INewClientJobResult : public IJobResult
 {
     protected:
-        INewClientJobResult(const int _clientSocketFD):
+        INewClientJobResult(const int _handlerID):
             IJobResult(JR_NEW_CLIENT),
-            clientSocketFD(_clientSocketFD)
+            handlerID(_handlerID)
         {};
     public:
-        const int clientSocketFD;
+        const int handlerID;
 };
 
 class IModeConnectJobResult : public IJobIntermediateResult
