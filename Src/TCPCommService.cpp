@@ -104,10 +104,14 @@ void TCPCommService::DeregisterSocket(const int fd)
     auto h=commHandlers.find(fd);
     if(h!=commHandlers.end())
     {
-        //close on deregister
-        if(close(fd)!=0)
-            logger->Error()<<"Failed to close socket fd "<<fd<<": "<<strerror(errno);
         commHandlers.erase(h);
+        //close on deregister
+        if(epoll_ctl(epollFd,EPOLL_CTL_DEL,fd,nullptr)<0)
+            HandleError(errno,"Failed to remove fd from epoll processing: ");
+        if(close(fd)!=0)
+            HandleError(errno,"Failed to close socket fd: ");
+        else
+            logger->Info()<<"Socket closed: "<<fd;
     }
 }
 
@@ -157,9 +161,10 @@ void TCPCommService::Worker()
                 auto h=commHandlers.find(fd);
                 if(h==commHandlers.end())
                 {
-                    logger->Warning()<<"Failed to process event from not registered fd: "<<fd;
+                    //should not happen
+                    logger->Error()<<"Failed to process event from not registered fd: "<<fd;
                     if(epoll_ctl(epollFd,EPOLL_CTL_DEL,fd, nullptr)<0)
-                        logger->Error()<<"Failed to remove not registered fd from epoll processing: "<<strerror(errno);
+                        HandleError(errno,"Failed to remove not registered fd from epoll processing: ");
                     continue;
                 }
 
@@ -170,8 +175,11 @@ void TCPCommService::Worker()
                 //hup or error - should be send both to reader and writer
                 if((ev&EPOLLERR)!=0||(ev&EPOLLHUP)!=0)
                 {
-                    if(epoll_ctl(epollFd,EPOLL_CTL_DEL,fd, nullptr)<0)
-                        logger->Error()<<"Failed to remove fd from epoll processing: "<<strerror(errno);
+                    /*epoll_event evt;
+                    evt.events=EPOLLET;
+                    evt.data.fd=fd;
+                    if(epoll_ctl(epollFd,EPOLL_CTL_MOD,fd,&evt)<0)
+                        HandleError(errno,"Failed to disable socket for epoll processing: ");*/
                     reader->NotifyHUP();
                     writer->NotifyHUP();
                     continue;
