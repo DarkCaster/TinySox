@@ -30,7 +30,7 @@ std::vector<std::shared_ptr<IJob>> JobFactory::CreateJobsFromResult(const IJobRe
     if(source.resultType==JR_NEW_CLIENT)
     {
         auto result=static_cast<const INewClientJobResult&>(source);
-        return std::vector<std::shared_ptr<IJob>>{ std::make_shared<Job_ClientHandshake>(commService,commManager,config,State().AddSocket(result.clientSocketFD)) };
+        return std::vector<std::shared_ptr<IJob>>{ std::make_shared<Job_ClientHandshake>(commService,commManager,config,State().AddHandler(result.clientSocketFD)) };
     }
 
     //handhake and CONNECT socks command complete, next jobs will transfer data across newly created TCP tunnel

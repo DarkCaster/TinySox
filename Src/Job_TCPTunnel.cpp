@@ -5,7 +5,7 @@ class JobTerminalResult final: public IJobTerminalResult{ public: JobTerminalRes
 Job_TCPTunnel::Job_TCPTunnel(ICommManager &_commManager, const State &_state, const IConfig &_config, const bool _isReader):
     commManager(_commManager),
     config(_config),
-    state(_state.ClaimAllSockets()),
+    state(_state.ClaimAllHandlers()),
     isReader(_isReader)
 {
     cancel.store(false);
@@ -13,7 +13,7 @@ Job_TCPTunnel::Job_TCPTunnel(ICommManager &_commManager, const State &_state, co
 
 static std::unique_ptr<const IJobResult> TerminalResultDisclaim(const State &state)
 {
-    return std::make_unique<const JobTerminalResult>(state.DisclaimAllSockets());
+    return std::make_unique<const JobTerminalResult>(state.DisclaimAllHandlers());
 }
 
 std::unique_ptr<const IJobResult> Job_TCPTunnel::Execute(std::shared_ptr<ILogger> logger)

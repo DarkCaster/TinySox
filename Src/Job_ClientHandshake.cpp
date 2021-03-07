@@ -14,13 +14,13 @@ Job_ClientHandshake::Job_ClientHandshake(ICommService &_commService, ICommManage
     commService(_commService),
     commManager(_commManager),
     config(_config),
-    state(_state.ClaimAllSockets())
+    state(_state.ClaimAllHandlers())
 {
 }
 
 static std::unique_ptr<const IJobResult> FailWithDisclaim(const State &state)
 {
-    return std::make_unique<const JobTerminalResult>(state.DisclaimAllSockets());
+    return std::make_unique<const JobTerminalResult>(state.DisclaimAllHandlers());
 }
 
 std::unique_ptr<const IJobResult> SendAuthFailWithDisclaim(const State &state, std::shared_ptr<ICommHelper> writer)
@@ -29,7 +29,7 @@ std::unique_ptr<const IJobResult> SendAuthFailWithDisclaim(const State &state, s
     buff[0]=0x01;
     buff[1]=0x01;
     writer->Transfer(buff,2,false);
-    return std::make_unique<const JobTerminalResult>(state.DisclaimAllSockets());
+    return std::make_unique<const JobTerminalResult>(state.DisclaimAllHandlers());
 }
 
 std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(std::shared_ptr<ILogger> logger)
@@ -290,7 +290,7 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(std::shared_ptr<I
                 rep=0x00;
                 logger->Info()<<"Connected to: "<<ip;
                 //create new socket claim, update state
-                finalState.Set(finalState.Get().AddSocketWithClaim(target));
+                finalState.Set(finalState.Get().AddHandlerWithClaim(target));
                 //get BND.ADDR and BND.PORT
                 sockaddr sa;
                 socklen_t sl=sizeof(sa);
@@ -333,7 +333,7 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(std::shared_ptr<I
 
     //TODO: support other commands, like BIND or UDP
     if(cmd==0x01 && rep==0x00)
-        return std::make_unique<const ModeConnectJobResult>(finalState.Get().DisclaimAllSockets());
+        return std::make_unique<const ModeConnectJobResult>(finalState.Get().DisclaimAllHandlers());
     else
         return FailWithDisclaim(finalState.Get());
 }

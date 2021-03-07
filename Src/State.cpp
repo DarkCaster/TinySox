@@ -6,7 +6,7 @@ State::State(const std::vector<std::shared_ptr<HandlerClaim>> &_handlerClaims, c
 {
 }
 
-State State::ClaimAllSockets() const
+State State::ClaimAllHandlers() const
 {
     std::vector<std::shared_ptr<HandlerClaim>> newHandlerClaims;
     std::vector<HandlerClaimState> newHandlerClaimStates;
@@ -18,7 +18,7 @@ State State::ClaimAllSockets() const
     return State(newHandlerClaims,newHandlerClaimStates);
 }
 
-State State::DisclaimAllSockets() const
+State State::DisclaimAllHandlers() const
 {
     std::vector<std::shared_ptr<HandlerClaim>> newHandlerClaims;
     std::vector<HandlerClaimState> newHandlerClaimStates;
@@ -30,7 +30,7 @@ State State::DisclaimAllSockets() const
     return State(newHandlerClaims,newHandlerClaimStates);
 }
 
-State State::AddSocket(int fd) const
+State State::AddHandler(int id) const
 {
     //copy old claim and it's current states
     std::vector<std::shared_ptr<HandlerClaim>> newHandlerClaims;
@@ -41,13 +41,13 @@ State State::AddSocket(int fd) const
         newHandlerClaimStates.push_back(oldClaim->GetState());
     }
     //create new claim
-    auto newClaim=std::make_shared<HandlerClaim>(HandlerClaim(fd));
+    auto newClaim=std::make_shared<HandlerClaim>(HandlerClaim(id));
     newHandlerClaims.push_back(newClaim);
     newHandlerClaimStates.push_back(newClaim->GetState());
     return State(newHandlerClaims,newHandlerClaimStates);
 }
 
-State State::AddSocketWithClaim(int fd) const
+State State::AddHandlerWithClaim(int id) const
 {
     //copy old claim and it's current states
     std::vector<std::shared_ptr<HandlerClaim>> newHandlerClaims;
@@ -58,7 +58,7 @@ State State::AddSocketWithClaim(int fd) const
         newHandlerClaimStates.push_back(oldClaim->GetState());
     }
     //create new claim
-    auto newClaim=std::make_shared<HandlerClaim>(HandlerClaim(fd));
+    auto newClaim=std::make_shared<HandlerClaim>(HandlerClaim(id));
     newHandlerClaims.push_back(newClaim);
     newHandlerClaimStates.push_back(newClaim->Claim());
     return State(newHandlerClaims,newHandlerClaimStates);
