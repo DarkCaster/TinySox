@@ -1,6 +1,6 @@
 #include "HandlerClaim.h"
 
-HandlerClaim::HandlerClaim(const int _handlerID):
+HandlerClaim::HandlerClaim(const uint64_t _handlerID):
     handlerID(_handlerID)
 {
     counter.store(0);

@@ -1,6 +1,7 @@
 #ifndef IJOB_RESULT_H
 #define IJOB_RESULT_H
 
+#include <cstdint>
 #include <unordered_map>
 #include "State.h"
 
@@ -49,7 +50,7 @@ class INewClientJobResult : public IJobResult
             handlerID(_handlerID)
         {};
     public:
-        const int handlerID;
+        const uint64_t handlerID;
 };
 
 class IModeConnectJobResult : public IJobIntermediateResult

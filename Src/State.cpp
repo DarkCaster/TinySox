@@ -30,7 +30,7 @@ State State::DisclaimAllHandlers() const
     return State(newHandlerClaims,newHandlerClaimStates);
 }
 
-State State::AddHandler(int id) const
+State State::AddHandler(const uint64_t id) const
 {
     //copy old claim and it's current states
     std::vector<std::shared_ptr<HandlerClaim>> newHandlerClaims;
@@ -41,13 +41,13 @@ State State::AddHandler(int id) const
         newHandlerClaimStates.push_back(oldClaim->GetState());
     }
     //create new claim
-    auto newClaim=std::make_shared<HandlerClaim>(HandlerClaim(id));
+    auto newClaim=std::make_shared<HandlerClaim>(id);
     newHandlerClaims.push_back(newClaim);
     newHandlerClaimStates.push_back(newClaim->GetState());
     return State(newHandlerClaims,newHandlerClaimStates);
 }
 
-State State::AddHandlerWithClaim(int id) const
+State State::AddHandlerWithClaim(const uint64_t id) const
 {
     //copy old claim and it's current states
     std::vector<std::shared_ptr<HandlerClaim>> newHandlerClaims;
@@ -58,7 +58,7 @@ State State::AddHandlerWithClaim(int id) const
         newHandlerClaimStates.push_back(oldClaim->GetState());
     }
     //create new claim
-    auto newClaim=std::make_shared<HandlerClaim>(HandlerClaim(id));
+    auto newClaim=std::make_shared<HandlerClaim>(id);
     newHandlerClaims.push_back(newClaim);
     newHandlerClaimStates.push_back(newClaim->Claim());
     return State(newHandlerClaims,newHandlerClaimStates);
