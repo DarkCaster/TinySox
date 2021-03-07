@@ -49,10 +49,9 @@ bool JobDispatcher::_SpawnWorkers(int count)
 
 std::shared_ptr<IJobWorker> JobDispatcher::_CreateWorkerInstance()
 {
-    if(freeWorkers.size()<1)
+    if(freeWorkers.size()<1 && !_SpawnWorkers(1))
     {
-        if(!_SpawnWorkers(1))
-            HandleError(errno,"Failed to spawn new worker!");
+        HandleError(errno,"Failed to spawn new worker!");
         return std::shared_ptr<IJobWorker>();
     }
     auto result=freeWorkers.front();
