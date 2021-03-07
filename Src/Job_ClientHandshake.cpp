@@ -41,7 +41,7 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(std::shared_ptr<I
     }
 
     //dumb abstraction for reading/writing data via sockets
-    auto handler=commManager.GetHandler(state.socketClaimStates[0].socketFD);
+    auto handler=commManager.GetHandler(state.socketClaimStates[0].handlerID);
     if(!CommHandler::IsValid(handler))
     {
         logger->Error()<<("Invalid CommHandler for performing socks handshake!");

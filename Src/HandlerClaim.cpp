@@ -1,28 +1,28 @@
 #include "HandlerClaim.h"
 
-HandlerClaim::HandlerClaim(const int _socketFD):
-    socketFD(_socketFD)
+HandlerClaim::HandlerClaim(const int _handlerID):
+    handlerID(_handlerID)
 {
     counter.store(0);
 }
 
 HandlerClaim::HandlerClaim(const HandlerClaim& other):
-    socketFD(other.socketFD)
+    handlerID(other.handlerID)
 {
     counter.store(other.counter.load());
 }
 
 HandlerClaimState HandlerClaim::Claim()
 {
-    return HandlerClaimState{counter.fetch_add(1)+1,socketFD};
+    return HandlerClaimState{counter.fetch_add(1)+1,handlerID};
 }
 
 HandlerClaimState HandlerClaim::Disclaim()
 {
-    return HandlerClaimState{counter.fetch_sub(1)-1,socketFD};
+    return HandlerClaimState{counter.fetch_sub(1)-1,handlerID};
 }
 
 HandlerClaimState HandlerClaim::GetState()
 {
-    return HandlerClaimState{counter.load(),socketFD};
+    return HandlerClaimState{counter.load(),handlerID};
 }

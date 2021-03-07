@@ -22,7 +22,7 @@ std::vector<std::shared_ptr<IJob>> JobFactory::CreateJobsFromResult(const IJobRe
         //this will close unused sockets
         for(auto &cState:result.state.socketClaimStates)
             if(cState.counter<1)
-                commService.DeregisterSocket(cState.socketFD);
+                commService.DeregisterSocket(cState.handlerID);
         return std::vector<std::shared_ptr<IJob>>();
     }
 

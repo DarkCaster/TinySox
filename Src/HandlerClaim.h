@@ -7,16 +7,16 @@ struct HandlerClaimState
 {
     public:
         const int counter;
-        const int socketFD;
+        const int handlerID;
 };
 
 class HandlerClaim
 {
     private:
         std::atomic<int> counter;
-        const int socketFD;
+        const int handlerID;
     public:
-        HandlerClaim(const int socketFD);
+        HandlerClaim(const int handlerID);
         HandlerClaim(const HandlerClaim &other);
         HandlerClaimState Claim();
         HandlerClaimState Disclaim();
