@@ -45,7 +45,7 @@ class IJobTerminalResult : public IJobIntermediateResult
 class INewClientJobResult : public IJobResult
 {
     protected:
-        INewClientJobResult(const int _handlerID):
+        INewClientJobResult(const uint64_t _handlerID):
             IJobResult(JR_NEW_CLIENT),
             handlerID(_handlerID)
         {};

@@ -58,27 +58,28 @@ TCPCommService::TCPCommService(std::shared_ptr<ILogger> &_logger, IMessageSender
     config(_config),
     epollFd(epoll_create(_config.GetWorkersCount()*2))
 {
+    handlerIdCounter=0;
     shutdownPending.store(false);
     events=std::make_unique<epoll_event[]>(config.GetWorkersSpawnCount());
 }
 
-CommHandler TCPCommService::GetHandler(const int fd)
+CommHandler TCPCommService::GetHandler(const uint64_t id)
 {
     const std::lock_guard<std::mutex> guard(manageLock);
-    auto h=commHandlers.find(fd);
+    auto h=commHandlers.find(id);
     if(h==commHandlers.end())
-        return CommHandler{std::shared_ptr<ICommHelper>(),std::shared_ptr<ICommHelper>()};
+        return CommHandler{std::shared_ptr<ICommHelper>(),std::shared_ptr<ICommHelper>(),-1};
     return h->second;
 }
 
-int TCPCommService::ConnectAndRegisterSocket(const IPEndpoint &target, const timeval &timeout)
+uint64_t TCPCommService::ConnectAndCreateHandler(const IPEndpoint &target, const timeval &timeout)
 {
     //create socket
     auto fd=socket(target.address.isV6?AF_INET6:AF_INET,SOCK_STREAM,0);
     if(fd<0)
     {
         HandleError(errno,"Failed to create new socket: ");
-        return -10;
+        return HANDLER_ERROR_OTHER;
     }
 
     TuneSocketBaseParams(logger,fd,config);
@@ -108,21 +109,20 @@ int TCPCommService::ConnectAndRegisterSocket(const IPEndpoint &target, const tim
         else
             logger->Warning()<<"Connection attempt to "<<target.address<<" timed out";
         if(error==ECONNREFUSED||error==EINPROGRESS)
-            return -1;
+            return HANDLER_ERROR_CONN_REFUSED;
         if(error==ENETUNREACH)
-            return -2;
+            return HANDLER_ERROR_NET_UNAVAIL;
         if(close(fd)!=0)
         {
             HandleError(error,"Failed to perform proper socket close after connection failure: ");
-            return -11;
+            return HANDLER_ERROR_OTHER;
         }
     }
 
-    RegisterActiveSocket(fd);
-    return fd;
+    return CreateHandlerFromSocket(fd);
 }
 
-void TCPCommService::RegisterActiveSocket(const int fd)
+uint64_t TCPCommService::CreateHandlerFromSocket(const int fd)
 {
     //set some parameters to make this socket compatible with non-blocking io and work with TCPCommHelper
     TuneSocketBaseParams(logger,fd,config);
@@ -130,31 +130,35 @@ void TCPCommService::RegisterActiveSocket(const int fd)
     SetSocketNonBlocking(logger,fd);
     //create comm-helper objects and setup this socket for epoll listening
     const std::lock_guard<std::mutex> guard(manageLock);
+    uint64_t id=++handlerIdCounter;
     CommHandler handler;
     handler.reader=std::make_shared<TCPCommHelper>(logger,config,fd,true);
     handler.writer=std::make_shared<TCPCommHelper>(logger,config,fd,false);
-    commHandlers.insert({fd,handler});
+    handler.fd=fd;
+    commHandlers.insert({id,handler});
     epoll_event ev;
     ev.events=EPOLLIN|EPOLLOUT|EPOLLRDHUP|EPOLLET;
-    ev.data.fd=fd;
+    ev.data.u64=id;
     if(epoll_ctl(epollFd,EPOLL_CTL_ADD,fd,&ev)<0)
         HandleError(errno,"Failed to register socket for epoll processing: ");
+    return id;
 }
 
-void TCPCommService::DeregisterSocket(const int fd)
+void TCPCommService::DisposeHandler(const uint64_t id)
 {
     const std::lock_guard<std::mutex> guard(manageLock);
-    auto h=commHandlers.find(fd);
+    auto h=commHandlers.find(id);
     if(h!=commHandlers.end())
     {
+        auto fd=h->second.fd;
         commHandlers.erase(h);
         //close on deregister
         if(epoll_ctl(epollFd,EPOLL_CTL_DEL,fd,nullptr)<0)
             HandleError(errno,"Failed to remove fd from epoll processing: ");
         if(close(fd)!=0)
-            HandleError(errno,"Failed to close socket fd: ");
+            HandleError(errno,"Failed to close socket: ");
         else
-            logger->Info()<<"Socket closed: "<<fd;
+            logger->Info()<<"Socket closed: "<<fd<<" id: "<<id;
     }
 }
 
@@ -197,17 +201,15 @@ void TCPCommService::Worker()
             //loop through events
             for(auto i=0;i<result;++i)
             {
-                int fd=events[i].data.fd;
+                auto id=events[i].data.u64;
                 auto ev=events[i].events;
 
                 //get comm-helper for event
-                auto h=commHandlers.find(fd);
+                auto h=commHandlers.find(id);
                 if(h==commHandlers.end())
                 {
                     //should not happen
-                    logger->Error()<<"Failed to process event from not registered fd: "<<fd;
-                    if(epoll_ctl(epollFd,EPOLL_CTL_DEL,fd, nullptr)<0)
-                        HandleError(errno,"Failed to remove not registered fd from epoll processing: ");
+                    logger->Error()<<"Failed to process event from not registered handler id: "<<id;
                     continue;
                 }
 
@@ -220,7 +222,7 @@ void TCPCommService::Worker()
                 {
                     /*epoll_event evt;
                     evt.events=EPOLLET;
-                    evt.data.fd=fd;
+                    evt.data.u64=id;
                     if(epoll_ctl(epollFd,EPOLL_CTL_MOD,fd,&evt)<0)
                         HandleError(errno,"Failed to disable socket for epoll processing: ");*/
                     reader->NotifyHUP();

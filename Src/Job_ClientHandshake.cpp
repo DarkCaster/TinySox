@@ -277,24 +277,30 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(std::shared_ptr<I
         //try connect to any ip-address from destIPs, create new socket claim
         for(auto &ip:destIPs)
         {
-            auto target=commService.ConnectAndRegisterSocket(IPEndpoint(ip,port),ct);
-            if(target<0)
+            auto target=commService.ConnectAndCreateHandler(IPEndpoint(ip,port),ct);
+            if(target>HANDLER_ERROR)
             {
-                if(target==-1)
+                if(target==HANDLER_ERROR_CONN_REFUSED)
                     rep=0x05;
-                if(target==-2)
+                if(target==HANDLER_ERROR_NET_UNAVAIL)
                     rep=0x03;
             }
             else
             {
                 rep=0x00;
                 logger->Info()<<"Connected to: "<<ip;
+                auto targetHandler=commManager.GetHandler(target);
+                if(!CommHandler::IsValid(targetHandler))
+                {
+                    logger->Error()<<"Failed to get target connection handler!";
+                    return FailWithDisclaim(finalState.Get());
+                }
                 //create new socket claim, update state
                 finalState.Set(finalState.Get().AddHandlerWithClaim(target));
                 //get BND.ADDR and BND.PORT
                 sockaddr sa;
                 socklen_t sl=sizeof(sa);
-                if(getsockname(target, &sa, &sl)<0)
+                if(getsockname(targetHandler.fd, &sa, &sl)<0)
                 {
                     logger->Error()<<"Call to getsockname failed: "<<strerror(errno);
                     return FailWithDisclaim(finalState.Get());

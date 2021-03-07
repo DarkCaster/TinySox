@@ -9,11 +9,12 @@
 #include "ICommManager.h"
 #include "ICommService.h"
 
-#include <sys/epoll.h>
+#include <cstdint>
 #include <atomic>
 #include <mutex>
 #include <unordered_map>
 #include <memory>
+#include <sys/epoll.h>
 
 class TCPCommService final: public ICommManager, public ICommService, public WorkerBase
 {
@@ -23,17 +24,18 @@ class TCPCommService final: public ICommManager, public ICommService, public Wor
         const IConfig &config;
         const int epollFd;
         std::mutex manageLock;
+        uint64_t handlerIdCounter;
         std::atomic<bool> shutdownPending;
         std::unique_ptr<epoll_event[]> events;
-        std::unordered_map<int,CommHandler> commHandlers;
+        std::unordered_map<uint64_t,CommHandler> commHandlers;
     public:
         TCPCommService(std::shared_ptr<ILogger> &logger, IMessageSender &sender, const IConfig &config);
         //from ICommManager
-        CommHandler GetHandler(const int fd) final;
+        CommHandler GetHandler(const uint64_t id) final;
         //from ICommService
-        int ConnectAndRegisterSocket(const IPEndpoint &target, const timeval &timeout) final;
-        void RegisterActiveSocket(const int fd) final;
-        void DeregisterSocket(const int fd) final;
+        uint64_t ConnectAndCreateHandler(const IPEndpoint &target, const timeval &timeout) final;
+        uint64_t CreateHandlerFromSocket(const int fd) final;
+        void DisposeHandler(const uint64_t id) final;
     private:
         void HandleError(int ec, const std::string& message);
         //from WorkerBase

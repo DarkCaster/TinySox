@@ -3,6 +3,7 @@
 
 #include "ICommHelper.h"
 
+#include <cstdint>
 #include <memory>
 
 struct CommHandler
@@ -10,13 +11,14 @@ struct CommHandler
     public:
         std::shared_ptr<ICommHelper> reader;
         std::shared_ptr<ICommHelper> writer;
+        int fd;
         static bool IsValid(CommHandler &target) { return target.reader.get()!=nullptr && target.writer.get()!=nullptr; }
 };
 
 class ICommManager
 {
     public:
-        virtual CommHandler GetHandler(const int fd) = 0;
+        virtual CommHandler GetHandler(const uint64_t id) = 0;
 };
 
 #endif //ICOMM_FACTORY_H

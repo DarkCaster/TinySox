@@ -1,6 +1,7 @@
 #include "TCPServerListener.h"
 #include "IJobResult.h"
 
+#include <cstdint>
 #include <cstring>
 #include <cerrno>
 #include <string>
@@ -11,7 +12,7 @@
 
 class ShutdownMessage: public IShutdownMessage { public: ShutdownMessage(int _ec):IShutdownMessage(_ec){} };
 class JobCompleteMessage: public IJobCompleteMessage { public: JobCompleteMessage(const IJobResult &_result):IJobCompleteMessage(_result){} };
-class NewClientJobResult: public INewClientJobResult { public: NewClientJobResult(const int fd):INewClientJobResult(fd){} };
+class NewClientJobResult: public INewClientJobResult { public: NewClientJobResult(const uint64_t id):INewClientJobResult(id){} };
 
 TCPServerListener::TCPServerListener(std::shared_ptr<ILogger> &_logger, IMessageSender &_sender, ICommService &_commService, const IConfig &_config, const IPEndpoint &_listenAt):
     logger(_logger),
@@ -141,8 +142,13 @@ void TCPServerListener::Worker()
 
         //pass client socket FD to the external logic
         logger->Info()<<"Client connected"<<std::endl;
-        commService.RegisterActiveSocket(cSockFd);
-        sender.SendMessage(this,JobCompleteMessage(NewClientJobResult(cSockFd)));
+        auto handler=commService.CreateHandlerFromSocket(cSockFd);
+        if(handler>HANDLER_ERROR)
+        {
+            HandleError("Error registering handler for incoming connection socket");
+            return;
+        }
+        sender.SendMessage(this,JobCompleteMessage(NewClientJobResult(handler)));
     }
 
     if(close(lSockFd)!=0)
