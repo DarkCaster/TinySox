@@ -8,15 +8,15 @@
 class State
 {
     protected:
-        State(const std::vector<std::shared_ptr<HandlerClaim>> &socketClaims, const std::vector<HandlerClaimState> &socketClaimStates);
+        State(const std::vector<std::shared_ptr<HandlerClaim>> &handlerClaims, const std::vector<HandlerClaimState> &handlerClaimStates);
     public:
         State() = default;
         State ClaimAllSockets() const;
         State DisclaimAllSockets() const;
         State AddSocket(int fd) const;
         State AddSocketWithClaim(int fd) const;
-        const std::vector<std::shared_ptr<HandlerClaim>> socketClaims;
-        const std::vector<HandlerClaimState> socketClaimStates;
+        const std::vector<std::shared_ptr<HandlerClaim>> handlerClaims;
+        const std::vector<HandlerClaimState> handlerClaimStates;
 };
 
 #endif

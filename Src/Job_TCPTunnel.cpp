@@ -18,7 +18,7 @@ static std::unique_ptr<const IJobResult> TerminalResultDisclaim(const State &sta
 
 std::unique_ptr<const IJobResult> Job_TCPTunnel::Execute(std::shared_ptr<ILogger> logger)
 {
-    if(state.socketClaims.size()!=2)
+    if(state.handlerClaims.size()!=2)
     {
         logger->Error()<<"Job_TCPTunnel: invalid configuration";
         return TerminalResultDisclaim(state);
@@ -26,8 +26,8 @@ std::unique_ptr<const IJobResult> Job_TCPTunnel::Execute(std::shared_ptr<ILogger
 
     int buffSz=config.GetTCPBuffSz();
     auto buff=std::make_unique<unsigned char[]>(buffSz);
-    auto rHandler=commManager.GetHandler(state.socketClaimStates[isReader?1:0].handlerID);
-    auto wHandler=commManager.GetHandler(state.socketClaimStates[isReader?0:1].handlerID);
+    auto rHandler=commManager.GetHandler(state.handlerClaimStates[isReader?1:0].handlerID);
+    auto wHandler=commManager.GetHandler(state.handlerClaimStates[isReader?0:1].handlerID);
     if(!CommHandler::IsValid(rHandler)||!CommHandler::IsValid(wHandler))
     {
         logger->Error()<<"Job_TCPTunnel: failed to get valid CommHandler(s)";

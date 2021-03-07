@@ -20,7 +20,7 @@ std::vector<std::shared_ptr<IJob>> JobFactory::CreateJobsFromResult(const IJobRe
         //dispose stuff stored in state object
         auto result=static_cast<const IJobTerminalResult&>(source);
         //this will close unused sockets
-        for(auto &cState:result.state.socketClaimStates)
+        for(auto &cState:result.state.handlerClaimStates)
             if(cState.counter<1)
                 commService.DeregisterSocket(cState.handlerID);
         return std::vector<std::shared_ptr<IJob>>();

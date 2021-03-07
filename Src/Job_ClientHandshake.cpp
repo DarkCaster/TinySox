@@ -34,14 +34,14 @@ std::unique_ptr<const IJobResult> SendAuthFailWithDisclaim(const State &state, s
 
 std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(std::shared_ptr<ILogger> logger)
 {
-    if(state.socketClaims.size()!=1)
+    if(state.handlerClaims.size()!=1)
     {
         logger->Error()<<"Job_ClientHandshake: invalid configuration";
         return FailWithDisclaim(state);
     }
 
-    //dumb abstraction for reading/writing data via sockets
-    auto handler=commManager.GetHandler(state.socketClaimStates[0].handlerID);
+    //abstraction for reading/writing data via TCP
+    auto handler=commManager.GetHandler(state.handlerClaimStates[0].handlerID);
     if(!CommHandler::IsValid(handler))
     {
         logger->Error()<<("Invalid CommHandler for performing socks handshake!");
