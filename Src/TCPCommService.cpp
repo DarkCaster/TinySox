@@ -157,8 +157,6 @@ void TCPCommService::DisposeHandler(const uint64_t id)
             HandleError(errno,"Failed to remove fd from epoll processing: ");
         if(close(fd)!=0)
             HandleError(errno,"Failed to close socket: ");
-        else
-            logger->Info()<<"Socket closed: "<<fd<<" id: "<<id;
     }
 }
 
@@ -209,7 +207,7 @@ void TCPCommService::Worker()
                 if(h==commHandlers.end())
                 {
                     //should not happen
-                    logger->Error()<<"Failed to process event from not registered handler id: "<<id;
+                    logger->Warning()<<"Failed to process event from not registered handler id: "<<id;
                     continue;
                 }
 
@@ -220,11 +218,6 @@ void TCPCommService::Worker()
                 //hup or error - should be send both to reader and writer
                 if((ev&EPOLLERR)!=0||(ev&EPOLLHUP)!=0)
                 {
-                    /*epoll_event evt;
-                    evt.events=EPOLLET;
-                    evt.data.u64=id;
-                    if(epoll_ctl(epollFd,EPOLL_CTL_MOD,fd,&evt)<0)
-                        HandleError(errno,"Failed to disable socket for epoll processing: ");*/
                     reader->NotifyHUP();
                     writer->NotifyHUP();
                     continue;

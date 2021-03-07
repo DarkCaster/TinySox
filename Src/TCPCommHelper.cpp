@@ -89,8 +89,7 @@ void TCPCommHelper::Shutdown()
 {
     if(status<-1)
         return;
-    if(shutdown(fd,isReader?SHUT_RD:SHUT_WR)<0)
-        logger->Info()<<(isReader?"TCPCommHelper(r): ":"TCPCommHelper(w) :")<<"Socket shutdown failed: "<<strerror(errno);
+    shutdown(fd,isReader?SHUT_RD:SHUT_WR);
     status=-2;
 }
 
