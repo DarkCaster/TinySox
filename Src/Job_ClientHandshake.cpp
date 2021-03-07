@@ -188,12 +188,12 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(std::shared_ptr<I
         IPAddress testIP(dname);
         if(testIP.isValid)
         {
-            logger->Warning()<<("IP address provided in domain name");
+            //logger->Warning()<<("IP address provided in domain name");
             destIPs.push_back(testIP);
         }
         else
         {
-            logger->Info()<<"Resolving domain: "<<dname;
+            //logger->Info()<<"Resolving domain: "<<dname;
             auto udns_ctx=dns_new(config.GetBaseUDNSContext());
             if(udns_ctx==nullptr)
             {

@@ -82,7 +82,7 @@ void JobDispatcher::Worker()
                 instance->RequestShutdown();
             for(auto &instance:tmp)
                 instance->Shutdown();
-            logger->Info()<<tmp.size()<<" workers disposed";
+            //logger->Info()<<tmp.size()<<" workers disposed";
             tmp.clear();
         }
 
@@ -98,7 +98,7 @@ void JobDispatcher::Worker()
                     HandleError(errno,"Worker startup failed (bg management thread): ");
                     return;
                 }
-                logger->Info()<<spawnCount<<" new workers spawned, total size: "<<freeWorkers.size();
+                //logger->Info()<<spawnCount<<" new workers spawned, total size: "<<freeWorkers.size();
             }
         }
 
