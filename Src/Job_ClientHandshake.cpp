@@ -289,27 +289,23 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(std::shared_ptr<I
             {
                 rep=0x00;
                 logger->Info()<<"Connected to: "<<ip;
+                //create new socket claim, update state
+                finalState.Set(finalState.Get().AddSocketWithClaim(target));
                 //get BND.ADDR and BND.PORT
                 sockaddr sa;
                 socklen_t sl=sizeof(sa);
                 if(getsockname(target, &sa, &sl)<0)
                 {
                     logger->Error()<<"Call to getsockname failed: "<<strerror(errno);
-                    if(close(target)!=0)
-                        logger->Error()<<"Failed to perform proper socket close after getsockname failure: "<<strerror(errno);
                     return FailWithDisclaim(finalState.Get());
                 }
                 IPEndpoint ep(&sa);
                 if(!ep.address.isValid)
                 {
                     logger->Error()<<"Invalid bind address discovered with getsockname";
-                    if(close(target)!=0)
-                        logger->Error()<<"Failed to perform proper socket close after failure to decode bind ip-address: "<<strerror(errno);
                     return FailWithDisclaim(finalState.Get());
                 }
                 bindEP.Set(ep);
-                //create new socket claim, update state
-                finalState.Set(finalState.Get().AddSocketWithClaim(target));
                 break;
             }
         }

@@ -1,7 +1,6 @@
 #include "JobFactory.h"
 #include "Job_ClientHandshake.h"
 #include "Job_TCPTunnel.h"
-#include "SocketHelpers.h"
 
 #include <vector>
 

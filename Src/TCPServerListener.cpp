@@ -1,6 +1,5 @@
 #include "TCPServerListener.h"
 #include "IJobResult.h"
-#include "SocketHelpers.h"
 
 #include <cstring>
 #include <cerrno>
