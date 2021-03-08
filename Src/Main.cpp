@@ -36,7 +36,8 @@ void usage(const std::string &self)
     std::cerr<<"    -cmax <seconds> max total time for establishing connection, default: 20"<<std::endl;
     std::cerr<<"    -cmin <seconds> min time for establishing connection to single IP, default: 5"<<std::endl;
     std::cerr<<"    -bsz <bytes> size of TCP buffer used for transferring data, default: 65536"<<std::endl;
-    std::cerr<<"    -st <time, ms> management interval used for some internal routines, default: 500"<<std::endl;
+    std::cerr<<"    -mt <time, ms> management interval used for some internal routines, default: 500"<<std::endl;
+    std::cerr<<"    -st <time, ms> socket timeout, lower to get faster reaction to tunnel disconnection events, default: 5000"<<std::endl;
     std::cerr<<"    -cf <seconds> timeout for flushing data when closing sockets, -1 to disable, 0 - close without flushing, default: 30"<<std::endl;
     std::cerr<<"    -wc <count> maximum workers count awailable for use immediately, default: 50"<<std::endl;
     std::cerr<<"    -ws <count> workers to spawn per round, default: 10"<<std::endl;
@@ -81,9 +82,6 @@ int main (int argc, char *argv[])
 
     Config config;
 
-    //TODO: setup via params
-    config.SetSocketTimeoutMS(5000);
-
     //parse port number
     if(args.find("-p")==args.end())
         return param_error(argv[0],"TCP port number is missing!");
@@ -121,12 +119,21 @@ int main (int argc, char *argv[])
     }
 
     config.SetServiceIntervalMS(500);
-    if(args.find("-st")!=args.end())
+    if(args.find("-mt")!=args.end())
     {
-        int cnt=std::atoi(args["-st"].c_str());
+        int cnt=std::atoi(args["-mt"].c_str());
         if(cnt<100 || cnt>10000)
             return param_error(argv[0],"workers management interval is invalid!");
         config.SetServiceIntervalMS(cnt);
+    }
+
+    config.SetSocketTimeoutMS(5000);
+    if(args.find("-st")!=args.end())
+    {
+        int cnt=std::atoi(args["-st"].c_str());
+        if(cnt<100 || cnt>60000)
+            return param_error(argv[0],"socket timeout is invalid!");
+        config.SetSocketTimeoutMS(cnt);
     }
 
     //TODO: support for multiple users
