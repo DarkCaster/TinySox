@@ -25,22 +25,24 @@ void usage(const std::string &self)
 {
     std::cerr<<"Usage: "<<self<<" [parameters]"<<std::endl;
     std::cerr<<"  mandatory parameters:"<<std::endl;
-    std::cerr<<"    -p <port-num> TCP port number to listen at."<<std::endl;
+    std::cerr<<"    -p <port-num> TCP port number to listen at"<<std::endl;
     std::cerr<<"  optional parameters:"<<std::endl;
-    std::cerr<<"    -l <ip-addr> listen ip-address"<<std::endl;
-    std::cerr<<"    -wc <count> maximum workers count awailable for use immediately"<<std::endl;
-    std::cerr<<"    -ws <count> workers to spawn per round"<<std::endl;
-    std::cerr<<"    -wt <time, ms> workers management interval"<<std::endl;
-    std::cerr<<"    -usr <username> for non anonymous login"<<std::endl;
-    std::cerr<<"    -pwd <password> for provided username"<<std::endl;
-    std::cerr<<"    -dns <ipaddress> use external DNS server"<<std::endl;
-    std::cerr<<"    -src <domain> search domain for use with external DNS"<<std::endl;
-    std::cerr<<"    -bsz <bytes> size of TCP buffer used for transferring data"<<std::endl;
-    std::cerr<<"    -cf <seconds> timeout for flushing data when closing sockets, 30 - default, -1 to disable, 0 - close without flushing"<<std::endl;
-    std::cerr<<"    -cmax <seconds> max total time for establishing connection"<<std::endl;
-    std::cerr<<"    -cmin <seconds> min time for single connection attempt (where there are multiple addresses resolved for provided domain)"<<std::endl;
-    std::cerr<<"    -dt <seconds> single connection data read/write timeout when actively transferring data (not when connection idle)"<<std::endl;
-    std::cerr<<"    -ht <seconds> connection idle timeout when only half of the tunnel is closed (sending or receiving part)"<<std::endl;
+    std::cerr<<"    -l <ip-addr> IP to listen at, default: 127.0.0.1"<<std::endl;
+    std::cerr<<"    -usr <username> user for non-anonymous login, default: not set"<<std::endl;
+    std::cerr<<"    -pwd <password> password for provided username, default: not set"<<std::endl;
+    std::cerr<<"    -dns <ipaddress> IP for custom DNS server, default: not set"<<std::endl;
+    std::cerr<<"    -src <domain> search domain for use with non-default DNS, default: not set"<<std::endl;
+    std::cerr<<"  experimental and optimization parameters:"<<std::endl;
+    std::cerr<<"    -cmax <seconds> max total time for establishing connection, default: 20"<<std::endl;
+    std::cerr<<"    -cmin <seconds> min time for establishing connection to single IP, default: 5"<<std::endl;
+    std::cerr<<"    -bsz <bytes> size of TCP buffer used for transferring data, default: 65536"<<std::endl;
+    std::cerr<<"    -st <time, ms> management interval used for some internal routines, default: 500"<<std::endl;
+    std::cerr<<"    -cf <seconds> timeout for flushing data when closing sockets, -1 to disable, 0 - close without flushing, default: 30"<<std::endl;
+    std::cerr<<"    -wc <count> maximum workers count awailable for use immediately, default: 50"<<std::endl;
+    std::cerr<<"    -ws <count> workers to spawn per round, default: 10"<<std::endl;
+    std::cerr<<"  unused parameters, or to be implemented:"<<std::endl;
+    std::cerr<<"    -dt <seconds> connection data read/write timeout when transferring data, default: 60, makes no sense when using non-blocking sockets"<<std::endl;
+    std::cerr<<"    -hc <seconds> connection idle timeout when only half of the tunnel is closed, default: 30, TODO: currently not used"<<std::endl;
 }
 
 int param_error(const std::string &self, const std::string &message)
@@ -119,9 +121,9 @@ int main (int argc, char *argv[])
     }
 
     config.SetServiceIntervalMS(500);
-    if(args.find("-wt")!=args.end())
+    if(args.find("-st")!=args.end())
     {
-        int cnt=std::atoi(args["-wt"].c_str());
+        int cnt=std::atoi(args["-st"].c_str());
         if(cnt<100 || cnt>10000)
             return param_error(argv[0],"workers management interval is invalid!");
         config.SetServiceIntervalMS(cnt);
