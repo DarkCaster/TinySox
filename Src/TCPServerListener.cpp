@@ -6,9 +6,9 @@
 #include <cerrno>
 #include <string>
 
-#include <sys/types.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <poll.h>
 
 class ShutdownMessage: public IShutdownMessage { public: ShutdownMessage(int _ec):IShutdownMessage(_ec){} };
 class JobCompleteMessage: public IJobCompleteMessage { public: JobCompleteMessage(const IJobResult &_result):IJobCompleteMessage(_result){} };
@@ -110,15 +110,14 @@ void TCPServerListener::Worker()
 
     logger->Info()<<"Listening for incoming connection"<<std::endl;
 
+    pollfd lst;
+    lst.fd=lSockFd;
+    lst.events=POLLIN;
+
     while (!shutdownPending.load())
     {
-        //TODO: get rid of select, use poll
-        //wait for new connection
-        fd_set lSet;
-        FD_ZERO(&lSet);
-        FD_SET(lSockFd, &lSet);
-        auto lt = config.GetServiceIntervalTV();
-        auto lrv = select(lSockFd+1, &lSet, nullptr, nullptr, &lt);
+        lst.revents=0;
+        auto lrv=poll(&lst,1,config.GetServiceIntervalMS());
         if(lrv==0) //no incoming connection detected
             continue;
 
