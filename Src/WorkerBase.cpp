@@ -5,7 +5,7 @@ bool WorkerBase::Startup()
     const std::lock_guard<std::mutex> guard(workerLock);
     if(workerStarted)
         return false;
-    worker=std::make_shared<std::thread>(std::thread(&WorkerBase::Worker,this));
+    worker=std::make_shared<std::thread>(&WorkerBase::Worker,this);
     workerStarted=true;
     return true;
 }
