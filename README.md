@@ -2,7 +2,7 @@
 
 [![deepcode](https://www.deepcode.ai/api/gh/badge?key=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwbGF0Zm9ybTEiOiJnaCIsIm93bmVyMSI6IkRhcmtDYXN0ZXIiLCJyZXBvMSI6IlRpbnlTb3giLCJpbmNsdWRlTGludCI6ZmFsc2UsImF1dGhvcklkIjoxNTI4NCwiaWF0IjoxNjE1MTY1NjcyfQ.4xrt5zOikQ3PKoWSzxwgCNXOfOv7gWpVv_dYQMk12UQ)](https://www.deepcode.ai/app/gh/DarkCaster/TinySox/_/dashboard?utm_content=gh%2FDarkCaster%2FTinySox)
 
-SOCKS5 server intended for use with small memory constrained devices running OpenWRT, with minimal feature-set (RFC1928 and RFC1929)
+SOCKS5 server with minimal feature-set (RFC1928 and RFC1929) intended for use with small memory constrained devices running Linux/OpenWRT.
 
 ## Build requirements and usage
 
