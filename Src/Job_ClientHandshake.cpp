@@ -288,7 +288,7 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(std::shared_ptr<I
             else
             {
                 rep=0x00;
-                logger->Info()<<"Connected to: "<<ip;
+                //logger->Info()<<"Connected to: "<<ip;
                 auto targetHandler=commManager.GetHandler(target);
                 if(!CommHandler::IsValid(targetHandler))
                 {
