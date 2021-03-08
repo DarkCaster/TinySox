@@ -218,7 +218,7 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(std::shared_ptr<I
                     else
                         destIPs.push_back(v6Addr);
                 }
-            if(ans6!=NULL)
+            if(ans6!=nullptr)
                 free(ans6);
 
             auto ans4=dns_resolve_a4(udns_ctx, dname.c_str(), config.GetUDNSSearchDomainIsSet()?0:DNS_NOSRCH);
@@ -231,7 +231,7 @@ std::unique_ptr<const IJobResult> Job_ClientHandshake::Execute(std::shared_ptr<I
                     else
                         destIPs.push_back(v4Addr);
                 }
-            if(ans4!=NULL)
+            if(ans4!=nullptr)
                 free(ans4);
 
             dns_close(udns_ctx);

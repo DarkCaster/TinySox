@@ -112,12 +112,13 @@ void TCPServerListener::Worker()
 
     while (!shutdownPending.load())
     {
+        //TODO: get rid of select, use poll
         //wait for new connection
         fd_set lSet;
         FD_ZERO(&lSet);
         FD_SET(lSockFd, &lSet);
         auto lt = config.GetServiceIntervalTV();
-        auto lrv = select(lSockFd+1, &lSet, NULL, NULL, &lt);
+        auto lrv = select(lSockFd+1, &lSet, nullptr, nullptr, &lt);
         if(lrv==0) //no incoming connection detected
             continue;
 
@@ -131,9 +132,10 @@ void TCPServerListener::Worker()
         }
 
         //accept single connection
-        sockaddr_storage cAddr;
-        socklen_t cAddrSz = sizeof(cAddr);
-        auto cSockFd=accept(lSockFd,reinterpret_cast<sockaddr*>(&cAddr),&cAddrSz);
+        //sockaddr_storage cAddr;
+        //socklen_t cAddrSz = sizeof(cAddr);
+        //auto cSockFd=accept(lSockFd,reinterpret_cast<sockaddr*>(&cAddr),&cAddrSz);
+        auto cSockFd=accept(lSockFd,nullptr,nullptr);
         if(cSockFd<1)
         {
             logger->Warning()<<"Failed to accept connection: "<<strerror(errno)<<std::endl;
@@ -141,7 +143,7 @@ void TCPServerListener::Worker()
         }
 
         //pass client socket FD to the external logic
-        logger->Info()<<"Client connected";
+        //logger->Info()<<"Client connected";
         auto handler=commService.CreateHandlerFromSocket(cSockFd);
         if(handler>HANDLER_ERROR)
         {
