@@ -11,7 +11,7 @@ SOCKS5 server intended for use with small memory constrained devices running Ope
 - Cmake (v3.1 and up)
 - libudns library development files (v0.4 and up)
 
-After building project by running `cmake && make`, tinysox binary will be saved to $PWD/BUILD directory (by default). Run tinysox without any parameters for usage info, currently it can be only configured via command line parameters (there is no config file support).
+After building project by running `cmake && make`, tinysox binary will be saved to [project root]/Build directory (by default). Run tinysox binary without any parameters for usage info, currently it can only be configured via command line parameters (there is no config file support).
 
 ## Currently implemented features
 
@@ -23,7 +23,7 @@ After building project by running `cmake && make`, tinysox binary will be saved 
 
 ## Planned features (sometime in the distant future)
 
-- Providing options via config file(s)
+- Provide configuration via config file(s)
 - Support for multiple listen addresses/ports, automatic handling of network changes
 - Support for multiple users (currently only 1 user account supported)
 - Support for allow/block lists of domain-names/ip-addresses for user accounts
@@ -31,4 +31,4 @@ After building project by running `cmake && make`, tinysox binary will be saved 
 - TCP BIND request support
 - Support for tunneling TCP out-of-band data
 
-Originally this was my educational project to learn modern C++ concepts. So, in order to keep relatively low complexity and ability to run on lowend linux devices - some complex features will be not available (GSSAPI auth support for example). Also, poor performance and scalability issues are expected at the moment.
+Originally this was my pet/home/educational project to learn modern C++ concepts. So, in order to keep relatively low complexity and ability to run on low-end linux devices - some complex features will be not available (GSSAPI auth support for example). Also, poor performance and scalability issues are expected at the moment, and project architecture may be somwhat overcomplicated.
