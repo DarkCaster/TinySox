@@ -22,6 +22,11 @@
 #include <sys/time.h>
 #include <udns.h>
 
+#include <sched.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
 void usage(const std::string &self)
 {
     std::cerr<<"Usage: "<<self<<" [parameters]"<<std::endl;
@@ -266,14 +271,34 @@ int main (int argc, char *argv[])
         return 1;
     }
 
-    //1-st stage startup - before changing netns and UID/GID
+    //1-st stage startup for priveleged operations
     for(auto &listener:serverListeners)
         listener->Startup();
     startupHandler.WaitForStartupReady();
 
+    if(!shutdownHandler.IsShutdownRequested() && !config.GetNetNS().empty())
+    {
+        mainLogger->Info()<<"Setting-up network namespace";
+        auto nFD=open(config.GetNetNS().c_str(),O_RDONLY);
+        if(nFD<0)
+        {
+            mainLogger->Error()<<"Failed to open netns file: "<<strerror(errno);
+            messageBroker.SendMessage(nullptr,ShutdownMessage(1));
+        }
+        if(!shutdownHandler.IsShutdownRequested())
+        {
+            auto nsResult=setns(nFD, CLONE_NEWNET);
+            if(nsResult<0)
+            {
+                mainLogger->Error()<<"Failed to set netns: "<<strerror(errno);
+                messageBroker.SendMessage(nullptr,ShutdownMessage(1));
+            }
+        }
+    }
 
-    //2-nd stage startup, workers will start inside new netns and UID/GID
-    mainLogger->Warning()<<"Second stage";
+    //TODO: change UID/GID,
+
+    //2-nd stage startup, all stuff from here will run unpreveleged and inside new netns
     messageBroker.SendMessage(nullptr,StartupContinueMessage());
 
     //start background workers, or perform post-setup init
