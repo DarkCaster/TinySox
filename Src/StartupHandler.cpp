@@ -1,6 +1,5 @@
 #include "StartupHandler.h"
 
-
 StartupHandler::StartupHandler()
 {
     shutdownRequested=false;

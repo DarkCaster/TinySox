@@ -6,6 +6,8 @@
 
 #include <atomic>
 
+class ShutdownMessage: public IShutdownMessage { public: ShutdownMessage(int _ec):IShutdownMessage(_ec){} };
+
 class ShutdownHandler final: public IMessageSubscriber
 {
     private:
