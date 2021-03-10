@@ -22,6 +22,7 @@
 #include <sys/time.h>
 #include <udns.h>
 
+#include <unistd.h>
 #include <sched.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -48,8 +49,11 @@ void usage(const std::string &self)
     std::cerr<<"    -wc <count> maximum workers count awailable for use immediately, default: 50"<<std::endl;
     std::cerr<<"    -ws <count> workers to spawn per round, default: 10"<<std::endl;
     std::cerr<<"    -ns <path> open NETNS provided by this path and create outgoing connections inside it, default: none, examples: /var/run/netns/office, /proc/7777/ns/net"<<std::endl;
+    std::cerr<<"    -ru <UID number> change UID after setting-up privileged stuff, default: none"<<std::endl;
+    std::cerr<<"    -rg <GID number> change GID after setting-up privileged stuff, default: none"<<std::endl;
+    std::cerr<<"    -cd <path> change directory before changing UID/GID, for use with -ru and -rg params, default: none"<<std::endl;
     std::cerr<<"  unused parameters, or to be implemented:"<<std::endl;
-    std::cerr<<"    -dt <seconds> connection data read/write timeout when transferring data, default: 60, makes no sense when using non-blocking sockets"<<std::endl;
+    std::cerr<<"    -dt <seconds> connection data read/write timeout when transferring data, default: 60, makes no sense because of using non-blocking sockets"<<std::endl;
     std::cerr<<"    -hc <seconds> connection idle timeout when only half of the tunnel is closed, default: 30, TODO: currently not used"<<std::endl;
 }
 
@@ -227,9 +231,12 @@ int main (int argc, char *argv[])
     }
 
     //network namespace
+    //TODO: remove this getter/setter from config class, if not used anywhere else
     config.SetNetNS(std::string(""));
     if(args.find("-ns")!=args.end())
         config.SetNetNS(args["-ns"]);
+
+
 
     StdioLoggerFactory logFactory;
     auto mainLogger=logFactory.CreateLogger("Main");
@@ -285,18 +292,57 @@ int main (int argc, char *argv[])
             mainLogger->Error()<<"Failed to open netns file: "<<strerror(errno);
             messageBroker.SendMessage(nullptr,ShutdownMessage(1));
         }
-        if(!shutdownHandler.IsShutdownRequested())
+        else if(!shutdownHandler.IsShutdownRequested() && setns(nFD, CLONE_NEWNET)<0)
         {
-            auto nsResult=setns(nFD, CLONE_NEWNET);
-            if(nsResult<0)
-            {
-                mainLogger->Error()<<"Failed to set netns: "<<strerror(errno);
-                messageBroker.SendMessage(nullptr,ShutdownMessage(1));
-            }
+            mainLogger->Error()<<"Failed to set netns: "<<strerror(errno);
+            messageBroker.SendMessage(nullptr,ShutdownMessage(1));
         }
     }
 
-    //TODO: change UID/GID,
+    //change directory
+    if(!shutdownHandler.IsShutdownRequested() && args.find("-cd")!=args.end())
+    {
+        mainLogger->Info()<<"Changing directory";
+        if(chdir(args["-cd"].c_str())<0)
+        {
+            mainLogger->Error()<<"Failed to change directory: "<<strerror(errno);
+            messageBroker.SendMessage(nullptr,ShutdownMessage(1));
+        }
+    }
+
+    //change GID
+    if(!shutdownHandler.IsShutdownRequested() && args.find("-rg")!=args.end())
+    {
+        mainLogger->Info()<<"Changing GID";
+        auto gid=std::atoi(args["-rg"].c_str());
+        if(gid<1)
+        {
+            mainLogger->Error()<<"Invalid GID value provided!";
+            messageBroker.SendMessage(nullptr,ShutdownMessage(1));
+        }
+        else if(setgid(gid)<0)
+        {
+            mainLogger->Error()<<"Failed to change GID: "<<strerror(errno);
+            messageBroker.SendMessage(nullptr,ShutdownMessage(1));
+        }
+    }
+
+    //change UID
+    if(!shutdownHandler.IsShutdownRequested() && args.find("-ru")!=args.end())
+    {
+        mainLogger->Info()<<"Changing UID";
+        auto uid=std::atoi(args["-ru"].c_str());
+        if(uid<1)
+        {
+            mainLogger->Error()<<"Invalid UID value provided!";
+            messageBroker.SendMessage(nullptr,ShutdownMessage(1));
+        }
+        else if(setuid(uid)<0)
+        {
+            mainLogger->Error()<<"Failed to change UID: "<<strerror(errno);
+            messageBroker.SendMessage(nullptr,ShutdownMessage(1));
+        }
+    }
 
     //2-nd stage startup, all stuff from here will run unpreveleged and inside new netns
     messageBroker.SendMessage(nullptr,StartupContinueMessage());
