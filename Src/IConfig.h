@@ -30,6 +30,7 @@ class IConfig
         virtual int GetMaxCTimeSec() const = 0;
         virtual int GetRWTimeoutSec() const = 0;
         virtual int GetHalfCloseTimeoutSec() const = 0;
+        virtual std::string GetNetNS() const = 0;
 };
 
 #endif

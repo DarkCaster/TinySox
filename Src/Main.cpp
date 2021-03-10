@@ -2,6 +2,7 @@
 #include "StdioLoggerFactory.h"
 #include "IPAddress.h"
 #include "MessageBroker.h"
+#include "StartupHandler.h"
 #include "ShutdownHandler.h"
 #include "JobDispatcher.h"
 #include "JobWorkerFactory.h"
@@ -41,6 +42,7 @@ void usage(const std::string &self)
     std::cerr<<"    -cf <seconds> timeout for flushing data when closing sockets, -1 to disable, 0 - close without flushing, default: 30"<<std::endl;
     std::cerr<<"    -wc <count> maximum workers count awailable for use immediately, default: 50"<<std::endl;
     std::cerr<<"    -ws <count> workers to spawn per round, default: 10"<<std::endl;
+    std::cerr<<"    -ns <path> open NETNS provided by this path and create outgoing connections inside it, default: none, examples: /var/run/netns/office, /proc/7777/ns/net"<<std::endl;
     std::cerr<<"  unused parameters, or to be implemented:"<<std::endl;
     std::cerr<<"    -dt <seconds> connection data read/write timeout when transferring data, default: 60, makes no sense when using non-blocking sockets"<<std::endl;
     std::cerr<<"    -hc <seconds> connection idle timeout when only half of the tunnel is closed, default: 30, TODO: currently not used"<<std::endl;
@@ -219,6 +221,11 @@ int main (int argc, char *argv[])
         config.SetHalfCloseTimeoutSec(time);
     }
 
+    //network namespace
+    config.SetNetNS(std::string(""));
+    if(args.find("-ns")!=args.end())
+        config.SetNetNS(args["-ns"]);
+
     StdioLoggerFactory logFactory;
     auto mainLogger=logFactory.CreateLogger("Main");
     auto dispLogger=logFactory.CreateLogger("Dispatcher");
@@ -231,7 +238,9 @@ int main (int argc, char *argv[])
     //configure the most essential stuff
     MessageBroker messageBroker;
     ShutdownHandler shutdownHandler;
+    StartupHandler startupHandler;
     messageBroker.AddSubscriber(shutdownHandler);
+    messageBroker.AddSubscriber(startupHandler);
 
     //create instances for main logic
     JobWorkerFactory jobWorkerFactory;
@@ -242,6 +251,11 @@ int main (int argc, char *argv[])
     std::vector<std::shared_ptr<TCPServerListener>> serverListeners;
     for(auto &addr:config.GetListenAddrs())
         serverListeners.push_back(std::make_shared<TCPServerListener>(listenerLogger,messageBroker,tcpCommService,config,addr));
+    for(auto &listener:serverListeners)
+    {
+        messageBroker.AddSubscriber(*(listener));
+        startupHandler.AddTarget(listener.get());
+    }
 
     //create sigset_t struct with signals
     sigset_t sigset;
@@ -252,14 +266,21 @@ int main (int argc, char *argv[])
         return 1;
     }
 
+    //1-st stage startup - before changing netns and UID/GID
+    for(auto &listener:serverListeners)
+        listener->Startup();
+    startupHandler.WaitForStartupReady();
+
+
+    //2-nd stage startup, workers will start inside new netns and UID/GID
+    mainLogger->Warning()<<"Second stage";
+    messageBroker.SendMessage(nullptr,StartupContinueMessage());
+
     //start background workers, or perform post-setup init
     jobDispatcher.Startup();
     tcpCommService.Startup();
-    for(auto &listener:serverListeners)
-        listener->Startup();
 
-    //main loop
-
+    //main loop, awaiting for signal
     while(true)
     {
         auto signal=sigtimedwait(&sigset,nullptr,&sigTs);

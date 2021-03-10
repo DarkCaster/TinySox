@@ -28,6 +28,7 @@ class Config final : public IConfig
         int hcTimeoutSec;
         std::unordered_set<IPEndpoint> listenAddrs;
         std::unordered_map<std::string,const User> users;
+        std::string netns;
     public:
         void AddListenAddr(const IPEndpoint &endpoint);
         void AddUser(const User &user);
@@ -43,6 +44,7 @@ class Config final : public IConfig
         void SetMaxCTimeSec(int time);
         void SetRWTimeSec(int time);
         void SetHalfCloseTimeoutSec(int time);
+        void SetNetNS(std::string path);
 
         //from IConfig
         std::unordered_set<IPEndpoint> GetListenAddrs() const final;
@@ -61,6 +63,7 @@ class Config final : public IConfig
         int GetMaxCTimeSec() const final;
         int GetRWTimeoutSec() const final;
         int GetHalfCloseTimeoutSec() const final;
+        std::string GetNetNS() const final;
 };
 
 #endif //CONFIG_H

@@ -70,6 +70,11 @@ void Config::SetHalfCloseTimeoutSec(int time)
     hcTimeoutSec=time;
 }
 
+void Config::SetNetNS(std::string path)
+{
+    netns=path;
+}
+
 int Config::GetSocketTimeoutMS() const
 {
     return socketTimeout;
@@ -146,6 +151,11 @@ int Config::GetRWTimeoutSec() const
 int Config::GetHalfCloseTimeoutSec() const
 {
     return hcTimeoutSec;
+}
+
+std::string Config::GetNetNS() const
+{
+    return netns;
 }
 
 std::unordered_set<IPEndpoint> Config::GetListenAddrs() const

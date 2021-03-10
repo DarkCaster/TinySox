@@ -13,6 +13,7 @@
 class ShutdownMessage: public IShutdownMessage { public: ShutdownMessage(int _ec):IShutdownMessage(_ec){} };
 class JobCompleteMessage: public IJobCompleteMessage { public: JobCompleteMessage(const IJobResult &_result):IJobCompleteMessage(_result){} };
 class NewClientJobResult: public INewClientJobResult { public: NewClientJobResult(const uint64_t id):INewClientJobResult(id){} };
+class StartupReadyMessage: public IStartupReadyMessage { public: StartupReadyMessage():IStartupReadyMessage(){} };
 
 TCPServerListener::TCPServerListener(std::shared_ptr<ILogger> &_logger, IMessageSender &_sender, ICommService &_commService, const IConfig &_config, const IPEndpoint &_listenAt):
     logger(_logger),
@@ -22,6 +23,7 @@ TCPServerListener::TCPServerListener(std::shared_ptr<ILogger> &_logger, IMessage
     endpoint(_listenAt)
 {
     shutdownPending.store(false);
+    startupAllowed.store(false);
 }
 
 void TCPServerListener::HandleError(const std::string &message)
@@ -110,6 +112,10 @@ void TCPServerListener::Worker()
 
     logger->Info()<<"Listening for incoming connection"<<std::endl;
 
+    //notify that we are ready for accepting connections, and wait for startup confirmation
+    sender.SendMessage(this, StartupReadyMessage());
+    while(!startupAllowed.load()) {}
+
     pollfd lst;
     lst.fd=lSockFd;
     lst.events=POLLIN;
@@ -165,4 +171,15 @@ void TCPServerListener::Worker()
 void TCPServerListener::OnShutdown()
 {
     shutdownPending.store(true);
+}
+
+bool TCPServerListener::ReadyForMessage(const MsgType msgType)
+{
+    return msgType==MSG_STARTUP_CONTINUE;
+}
+
+void TCPServerListener::OnMessage(const void* const, const IMessage &)
+{
+    //continue startup after netns and UID/GID was setup
+    startupAllowed.store(true);
 }

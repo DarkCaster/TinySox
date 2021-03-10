@@ -241,7 +241,7 @@ void TCPCommService::Worker()
     //notify all monitored handlers to shutdown
     {
         const std::lock_guard<std::mutex> guard(manageLock);
-        logger->Info()<<"Sending shutdown notifocations for active connection handlers: "<<commHandlers.size();
+        logger->Info()<<"Sending shutdown notifications for active connection handlers: "<<commHandlers.size();
         for(auto &it:commHandlers)
         {
             logger->Warning()<<"Sending cancel to handler id: "<<it.first;

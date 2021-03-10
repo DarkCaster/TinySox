@@ -7,6 +7,8 @@ enum MsgType
 {
     MSG_SHUTDOWN,
     MSG_JOB_COMPLETE,
+    MSG_STARTUP_READY,
+    MSG_STARTUP_CONTINUE,
 };
 
 class IMessage
@@ -31,6 +33,18 @@ class IJobCompleteMessage : public IMessage
         IJobCompleteMessage(const IJobResult &_result):IMessage(MSG_JOB_COMPLETE),result(_result){}
     public:
         const IJobResult &result;
+};
+
+class IStartupReadyMessage : public IMessage
+{
+    protected:
+        IStartupReadyMessage():IMessage(MSG_STARTUP_READY){}
+};
+
+class IStartupContinueMessage : public IMessage
+{
+    protected:
+        IStartupContinueMessage():IMessage(MSG_STARTUP_CONTINUE){}
 };
 
 #endif // IMESSAGE_H
