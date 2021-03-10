@@ -17,10 +17,7 @@ LogWriter::LogWriter(std::ostream &_output, std::mutex &_extLock, const double &
 LogWriter::~LogWriter()
 {
     if(!endl)
-        std::cout<<std::endl;
-    else
-        std::cout<<std::flush;
-    //std::cout<<"!!!destruct!!!"<<std::endl;
+        output<<std::endl;
     extLock.unlock();
 }
 
