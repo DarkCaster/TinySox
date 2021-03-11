@@ -8,7 +8,7 @@ IPEndpoint::IPEndpoint():
 {
 }
 
-IPEndpoint::IPEndpoint(const IPAddress &_address, const ushort _port):
+IPEndpoint::IPEndpoint(const IPAddress &_address, const uint16_t _port):
     address(_address),
     port(_port)
 {

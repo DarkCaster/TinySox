@@ -3,6 +3,7 @@
 
 #include "IPAddress.h"
 
+#include <cstdint>
 #include <iostream>
 #include <sys/socket.h>
 
@@ -10,7 +11,7 @@ class IPEndpoint
 {
     public:
         IPEndpoint();
-        IPEndpoint(const IPAddress &address, const ushort port);
+        IPEndpoint(const IPAddress &address, const uint16_t port);
         IPEndpoint(const sockaddr * const sa);
         IPEndpoint(const IPEndpoint &other);
 

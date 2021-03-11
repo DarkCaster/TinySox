@@ -12,6 +12,7 @@
 #include "User.h"
 #include "Config.h"
 
+#include <cstdint>
 #include <memory>
 #include <vector>
 #include <unordered_map>
@@ -106,10 +107,10 @@ int main (int argc, char *argv[])
     {
         if(!IPAddress(args["-l"]).isValid||IPAddress(args["-l"]).isV6)
             return param_error(argv[0],"listen IP address is invalid!");
-        config.AddListenAddr(IPEndpoint(IPAddress(args["-l"]),static_cast<ushort>(port)));
+        config.AddListenAddr(IPEndpoint(IPAddress(args["-l"]),static_cast<uint16_t>(port)));
     }
     else
-        config.AddListenAddr(IPEndpoint(IPAddress("127.0.0.1"),static_cast<ushort>(port))); //TODO: add any IP addr support 0.0.0.0
+        config.AddListenAddr(IPEndpoint(IPAddress("127.0.0.1"),static_cast<uint16_t>(port))); //TODO: add any IP addr support 0.0.0.0
 
     config.SetWorkersCount(50);
     if(args.find("-wc")!=args.end())
