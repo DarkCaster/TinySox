@@ -20,6 +20,7 @@ After building project by running `cmake && make`, tinysox binary will be saved 
 - CONNECT request support
 - IPv4/IPv6 support
 - Custom DNS server (and search domain) support
+- Support for using a separate network namespace for outbound connections
 
 ## Planned features (sometime in the distant future)
 
