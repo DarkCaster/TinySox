@@ -22,7 +22,7 @@ After building project by running `cmake && make`, tinysox binary will be saved 
 - Support for using custom DNS resolver and search domain
 - Support for using a separate network namespace for outbound connections
 
-## Planned features (sometime in the distant future)
+## Planned features (do not expect it anytime soon)
 
 - Provide configuration via config file(s)
 - Support for multiple listen addresses/ports, automatic handling of network changes
@@ -32,4 +32,4 @@ After building project by running `cmake && make`, tinysox binary will be saved 
 - TCP BIND request support
 - Support for tunneling TCP out-of-band data
 
-Originally this was my pet/home/educational project to learn modern C++ concepts. So, in order to keep relatively low complexity and ability to run on low-end linux devices - some complex features will be not available (GSSAPI auth support for example). Also, poor performance and scalability issues are expected at the moment, and project architecture may be somwhat overcomplicated.
+Originally this was my pet/home/educational project to learn modern C++ concepts. So, in order to keep relatively low complexity and ability to run on low-end linux devices - some complex features will be not available (GSSAPI auth support for example). Also, poor performance and scalability issues are expected at the moment, and project architecture may be somewhat overcomplicated.
