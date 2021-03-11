@@ -19,7 +19,7 @@ After building project by running `cmake && make`, tinysox binary will be saved 
 - Plain login/password and anonymous authentication modes
 - CONNECT request support
 - IPv4/IPv6 support
-- Custom DNS server (and search domain) support
+- Support for using custom DNS resolver and search domain
 - Support for using a separate network namespace for outbound connections
 
 ## Planned features (sometime in the distant future)
