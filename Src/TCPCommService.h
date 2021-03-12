@@ -8,6 +8,7 @@
 #include "ICommHelper.h"
 #include "ICommManager.h"
 #include "ICommService.h"
+#include "TCPCommHelper.h"
 
 #include <cstdint>
 #include <atomic>
@@ -27,7 +28,8 @@ class TCPCommService final: public ICommManager, public ICommService, public Wor
         uint64_t handlerIdCounter;
         std::atomic<bool> shutdownPending;
         std::unique_ptr<epoll_event[]> events;
-        std::unordered_map<uint64_t,CommHandler> commHandlers;
+        struct TCPCommHandler { std::shared_ptr<TCPCommHelper> reader; std::shared_ptr<TCPCommHelper> writer; int fd; };
+        std::unordered_map<uint64_t,TCPCommHandler> commHandlers;
     public:
         TCPCommService(std::shared_ptr<ILogger> &logger, IMessageSender &sender, const IConfig &config);
         //from ICommManager

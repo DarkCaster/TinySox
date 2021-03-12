@@ -1,5 +1,4 @@
 #include "TCPCommService.h"
-#include "TCPCommHelper.h"
 
 #include <sys/socket.h>
 #include <fcntl.h>
@@ -69,7 +68,7 @@ CommHandler TCPCommService::GetHandler(const uint64_t id)
     auto h=commHandlers.find(id);
     if(h==commHandlers.end())
         return CommHandler{std::shared_ptr<ICommHelper>(),std::shared_ptr<ICommHelper>(),-1};
-    return h->second;
+    return CommHandler{std::static_pointer_cast<ICommHelper>(h->second.reader),std::static_pointer_cast<ICommHelper>(h->second.writer),h->second.fd};
 }
 
 uint64_t TCPCommService::ConnectAndCreateHandler(const IPEndpoint &target, const timeval &timeout)
@@ -132,10 +131,7 @@ uint64_t TCPCommService::CreateHandlerFromSocket(const int fd)
     //create comm-helper objects and setup this socket for epoll listening
     const std::lock_guard<std::mutex> guard(manageLock);
     uint64_t id=++handlerIdCounter;
-    CommHandler handler;
-    handler.reader=std::make_shared<TCPCommHelper>(logger,config,fd,true);
-    handler.writer=std::make_shared<TCPCommHelper>(logger,config,fd,false);
-    handler.fd=fd;
+    TCPCommHandler handler{std::make_shared<TCPCommHelper>(logger,config,fd,true),std::make_shared<TCPCommHelper>(logger,config,fd,false),fd};
     commHandlers.insert({id,handler});
     epoll_event ev;
     ev.events=EPOLLIN|EPOLLOUT|EPOLLRDHUP|EPOLLET;
@@ -214,26 +210,22 @@ void TCPCommService::Worker()
                 if(h==commHandlers.end())
                     continue;
 
-                //handle events, modify epoll interest-list, send notifications to reader/writer
-                auto reader=reinterpret_cast<TCPCommHelper*>(h->second.reader.get());
-                auto writer=reinterpret_cast<TCPCommHelper*>(h->second.writer.get());
-
                 //hup or error - should be send both to reader and writer
                 if((ev&EPOLLERR)!=0||(ev&EPOLLHUP)!=0)
                 {
-                    reader->NotifyHUP();
-                    writer->NotifyHUP();
+                    h->second.reader->NotifyHUP();
+                    h->second.writer->NotifyHUP();
                     continue;
                 }
 
                 //rd hup or data availability
                 if((ev&EPOLLRDHUP)!=0)
-                    reader->NotifyHUP();
+                    h->second.reader->NotifyHUP();
                 else if((ev&EPOLLIN)!=0)
-                    reader->NotifyDataAvail();
+                    h->second.reader->NotifyDataAvail();
 
                 if((ev&EPOLLOUT)!=0)
-                    writer->NotifyDataAvail();
+                    h->second.writer->NotifyDataAvail();
             }
         }
     }

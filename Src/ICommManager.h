@@ -12,8 +12,10 @@ struct CommHandler
         std::shared_ptr<ICommHelper> reader;
         std::shared_ptr<ICommHelper> writer;
         int fd;
-        static bool IsValid(CommHandler &target) { return target.reader.get()!=nullptr && target.writer.get()!=nullptr; }
+        static bool IsValid(CommHandler &target) { return target.reader.get()!=nullptr && target.writer.get()!=nullptr && target.fd>-1; }
 };
+
+
 
 class ICommManager
 {
@@ -21,4 +23,4 @@ class ICommManager
         virtual CommHandler GetHandler(const uint64_t id) = 0;
 };
 
-#endif //ICOMM_FACTORY_H
+#endif //ICOMM_MANAGER_H
