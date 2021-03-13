@@ -18,6 +18,9 @@ JobDispatcher::JobDispatcher(std::shared_ptr<ILogger> &dispatcherLogger, ILogger
     shutdownPending.store(false);
     msgProcCount.store(0);
     workerID=0;
+    freeWorkers.reserve(config.GetWorkersCount()+1);
+    activeWorkers.reserve(config.GetActiveWorkersCount()+1);
+    finishedWorkers.reserve(config.GetActiveWorkersCount()+1);
 }
 
 void JobDispatcher::HandleError(const std::string &message)
@@ -54,17 +57,18 @@ std::shared_ptr<IJobWorker> JobDispatcher::_CreateWorkerInstance()
         HandleError(errno,"Failed to spawn new worker!");
         return std::shared_ptr<IJobWorker>();
     }
-    auto result=freeWorkers.front();
-    freeWorkers.pop_front();
+    auto result=freeWorkers.back();
+    freeWorkers.pop_back();
     return result;
 }
 
 void JobDispatcher::Worker()
 {
-    std::deque<std::shared_ptr<IJobWorker>> tmp;
+    std::vector<std::shared_ptr<IJobWorker>> tmp;
+    tmp.reserve(config.GetActiveWorkersCount()+1);
+
     uint workersLimit=config.GetWorkersCount();
     uint workersSpawnLimit=config.GetWorkersSpawnCount();
-    int mgmInerval=config.GetServiceIntervalMS();
 
     //loop untill shutdown
     while(!shutdownPending.load())
@@ -72,8 +76,7 @@ void JobDispatcher::Worker()
         //dispose workers that finished it's execution
         {
             const std::lock_guard<std::mutex> lock(disposeLock);
-            for(auto &instance:finishedWorkers)
-                tmp.push_back(instance);
+            tmp.assign(finishedWorkers.begin(),finishedWorkers.end());
             finishedWorkers.clear();
         }
         if(tmp.size()>0)
@@ -83,7 +86,7 @@ void JobDispatcher::Worker()
             for(auto &instance:tmp)
                 instance->Shutdown();
             //logger->Info()<<tmp.size()<<" workers disposed";
-            tmp.clear();
+            //tmp.clear(); //will be cleared on next run
         }
 
         //populate thread pool with new workers if needed
@@ -103,7 +106,7 @@ void JobDispatcher::Worker()
         }
 
         //sleep for the next round
-        std::this_thread::sleep_for(std::chrono::milliseconds(mgmInerval));
+        std::this_thread::sleep_for(std::chrono::milliseconds(config.GetServiceIntervalMS()));
     }
 
     //spin until no workers processing messages

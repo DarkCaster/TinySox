@@ -55,11 +55,12 @@ TCPCommService::TCPCommService(std::shared_ptr<ILogger> &_logger, IMessageSender
     logger(_logger),
     sender(_sender),
     config(_config),
-    epollFd(epoll_create(_config.GetWorkersCount()*2))
+    epollFd(epoll_create(_config.GetActiveWorkersCount()+1))
 {
     handlerIdCounter=0;
     shutdownPending.store(false);
     events=std::make_unique<epoll_event[]>(config.GetWorkersSpawnCount());
+    commHandlers.reserve(config.GetActiveWorkersCount()+1);
 }
 
 CommHandler TCPCommService::GetHandler(const uint64_t id)

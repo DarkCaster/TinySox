@@ -15,7 +15,6 @@
 
 #include <string>
 #include <atomic>
-#include <deque>
 #include <unordered_map>
 #include <mutex>
 #include <memory>
@@ -35,9 +34,9 @@ class JobDispatcher final: public IMessageSubscriber, public WorkerBase
 
         unsigned long workerID;
 
-        std::deque<std::shared_ptr<IJobWorker>> freeWorkers;
+        std::vector<std::shared_ptr<IJobWorker>> freeWorkers;
         std::unordered_map<const void*,std::shared_ptr<IJobWorker>> activeWorkers;
-        std::deque<std::shared_ptr<IJobWorker>> finishedWorkers;
+        std::vector<std::shared_ptr<IJobWorker>> finishedWorkers;
 
         std::mutex freeLock;
         std::mutex activeLock;
