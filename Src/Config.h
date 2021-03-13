@@ -18,6 +18,7 @@ class Config final : public IConfig
         int serviceInterval;
         int workersCount;
         int workersSpawnCount;
+        int activeWorkersCount;
         dns_ctx * context;
         bool udnsSRCSet;
         int TCPBuffSz;
@@ -36,6 +37,7 @@ class Config final : public IConfig
         void SetServiceIntervalMS(int intervalMS);
         void SetWorkersCount(int count);
         void SetWorkersSpawnCount(int count);
+        void SetActiveWorkersCount(int count);
         void SetBaseUDNSContext(dns_ctx * context);
         void SetUDNSSearchDomainIsSet(bool val);
         void SetTCPBuffSz(int sz);
@@ -54,6 +56,7 @@ class Config final : public IConfig
         timeval GetServiceIntervalTV() const final;
         int GetWorkersCount() const final;
         int GetWorkersSpawnCount() const final;
+        int GetActiveWorkersCount() const final;
         const User * GetUser(const std::string &name) const final;
         dns_ctx * GetBaseUDNSContext() const final;
         bool GetUDNSSearchDomainIsSet() const final;

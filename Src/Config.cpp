@@ -30,6 +30,11 @@ void Config::SetWorkersSpawnCount(int count)
     workersSpawnCount=count;
 }
 
+void Config::SetActiveWorkersCount(int count)
+{
+    activeWorkersCount=count;
+}
+
 void Config::SetBaseUDNSContext(dns_ctx *_context)
 {
     context=_context;
@@ -103,6 +108,11 @@ int Config::GetWorkersCount() const
 int Config::GetWorkersSpawnCount() const
 {
     return workersSpawnCount;
+}
+
+int Config::GetActiveWorkersCount() const
+{
+    return activeWorkersCount;
 }
 
 const User * Config::GetUser(const std::string &name) const

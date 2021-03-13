@@ -49,6 +49,7 @@ void usage(const std::string &self)
     std::cerr<<"    -cf <seconds> timeout for flushing data when closing sockets, -1 to disable, 0 - close without flushing, default: 30"<<std::endl;
     std::cerr<<"    -wc <count> maximum workers count awailable for use immediately, default: 50"<<std::endl;
     std::cerr<<"    -ws <count> workers to spawn per round, default: 10"<<std::endl;
+    std::cerr<<"    -ac <count> recommended maximum active workers count (for storage optimization), default: 250"<<std::endl;
     std::cerr<<"    -ns <path> open NETNS provided by this path and create outgoing connections inside it, default: none, examples: /var/run/netns/office, /proc/7777/ns/net"<<std::endl;
     std::cerr<<"    -ru <UID number> change UID after setting-up privileged stuff, default: none"<<std::endl;
     std::cerr<<"    -rg <GID number> change GID after setting-up privileged stuff, default: none"<<std::endl;
@@ -128,6 +129,15 @@ int main (int argc, char *argv[])
         if(cnt<1 || cnt>config.GetWorkersCount())
             return param_error(argv[0],"workers swawn count value is invalid!");
         config.SetWorkersSpawnCount(cnt);
+    }
+
+    config.SetActiveWorkersCount(250);
+    if(args.find("-ac")!=args.end())
+    {
+        int cnt=std::atoi(args["-ac"].c_str());
+        if(cnt<1 || cnt>10000)
+            return param_error(argv[0],"max active workers count value is invalid!");
+        config.SetActiveWorkersCount(cnt);
     }
 
     config.SetServiceIntervalMS(500);
