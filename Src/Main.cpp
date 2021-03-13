@@ -155,24 +155,16 @@ int main (int argc, char *argv[])
         config.AddUser(User{args["-usr"],args.find("-pwd")==args.end()?"":args["-pwd"]});
     config.AddUser(User{args["-usr"],args.find("-pwd")==args.end()?"":args["-pwd"]});
 
-    //ext DNS setup
-    if(args.find("-dns")==args.end())
-        dns_init(&dns_defctx,0);
-    else
+    //setup parameters for udns, rest of UDNS setup will be performed later
+    config.SetBaseUDNSContext(&dns_defctx);
+    config.SetUDNSSearchDomainIsSet(false);
+    if(args.find("-dns")!=args.end())
     {
         if(!IPAddress(args["-dns"]).isValid)
             return param_error(argv[0],"DNS address is invalid");
-        dns_reset(&dns_defctx);
-        if(dns_add_serv(&dns_defctx,IPAddress(args["-dns"]).ToString().c_str())!=1)
-            return param_error(argv[0],"Failed to set external DNS server");
         if(args.find("-src")!=args.end())
-        {
-            if(dns_add_srch(&dns_defctx, args["-src"].c_str())<0)
-                return param_error(argv[0],"Failed to set search domain for external DNS server");
             config.SetUDNSSearchDomainIsSet(true);
-        }
     }
-    config.SetBaseUDNSContext(&dns_defctx);
 
     //tcp buff size
     config.SetTCPBuffSz(65536);
@@ -236,8 +228,6 @@ int main (int argc, char *argv[])
     config.SetNetNS(std::string(""));
     if(args.find("-ns")!=args.end())
         config.SetNetNS(args["-ns"]);
-
-
 
     StdioLoggerFactory logFactory;
     auto mainLogger=logFactory.CreateLogger("Main");
@@ -343,6 +333,30 @@ int main (int argc, char *argv[])
             mainLogger->Error()<<"Failed to change UID: "<<strerror(errno);
             messageBroker.SendMessage(nullptr,ShutdownMessage(1));
         }
+    }
+
+    //init UDNS context
+    if(!shutdownHandler.IsShutdownRequested())
+    {
+        mainLogger->Info()<<"Setting-up UDNS context";
+        if(args.find("-dns")==args.end())
+            dns_init(&dns_defctx,0);
+        else
+        {
+            dns_reset(&dns_defctx);
+            if(dns_add_serv(&dns_defctx,IPAddress(args["-dns"]).ToString().c_str())!=1)
+            {
+                mainLogger->Error()<<"Failed to set external DNS server: "<<strerror(errno);
+                messageBroker.SendMessage(nullptr,ShutdownMessage(1));
+            }
+        }
+    }
+
+    //ext server for UDNS
+    if(!shutdownHandler.IsShutdownRequested() && config.GetUDNSSearchDomainIsSet() && dns_add_srch(&dns_defctx, args["-src"].c_str())<0)
+    {
+        mainLogger->Error()<<"Failed to set search domain for external DNS server: "<<strerror(errno);
+        messageBroker.SendMessage(nullptr,ShutdownMessage(1));
     }
 
     //2-nd stage startup, all stuff from here will run unpreveleged and inside new netns
