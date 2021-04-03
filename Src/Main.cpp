@@ -245,11 +245,12 @@ int main (int argc, char *argv[])
     auto jobFactoryLogger=logFactory.CreateLogger("JobFactory");
     auto listenerLogger=logFactory.CreateLogger("Listener");
     auto tcpServiceLogger=logFactory.CreateLogger("TCPCommSvc");
+    auto messageBrokerLogger=logFactory.CreateLogger("MSGBroker");
 
     mainLogger->Info()<<"Starting up";
 
     //configure the most essential stuff
-    MessageBroker messageBroker;
+    MessageBroker messageBroker(messageBrokerLogger);
     ShutdownHandler shutdownHandler;
     StartupHandler startupHandler;
     messageBroker.AddSubscriber(shutdownHandler);

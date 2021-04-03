@@ -4,6 +4,7 @@
 #include "IMessageSender.h"
 #include "IMessageSubscriber.h"
 #include "IMessage.h"
+#include "ILogger.h"
 
 #include <thread>
 #include <mutex>
@@ -16,8 +17,10 @@ class MessageBroker : public IMessageSender
         std::mutex opLock;
         std::set<IMessageSubscriber*> subscribers;
         std::map<std::thread::id,std::set<const void*>*> callers;
+        std::shared_ptr<ILogger> logger;
     public:
-        void AddSubscriber(IMessageSubscriber& subscriber);
+        MessageBroker(std::shared_ptr<ILogger> &_logger);
+        void AddSubscriber(IMessageSubscriber &subscriber);
         void SendMessage(const void* const source, const IMessage &message) final;
 };
 

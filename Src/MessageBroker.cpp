@@ -1,5 +1,10 @@
 #include "MessageBroker.h"
 #include <vector>
+#include <iostream>
+
+MessageBroker::MessageBroker(std::shared_ptr<ILogger>& _logger):
+    logger(_logger)
+{ }
 
 void MessageBroker::AddSubscriber(IMessageSubscriber& subscriber)
 {
@@ -27,7 +32,10 @@ void MessageBroker::SendMessage(const void* const source, const IMessage& messag
         {//recursion detected, we need to check has we already called by specific sender in this thread
             curSenders=itCallers->second;
             if(curSenders->find(source)!=curSenders->end())
+            {
+                logger->Error()<<"recursion detected while sending a message of type "<<message.msgType;
                 return;//we already processed this sender, we must stop there to prevent infinite recursion
+            }
             curSenders->insert(source);
         }
         curSubscribers.assign(subscribers.begin(),subscribers.end());
