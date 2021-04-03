@@ -1,10 +1,39 @@
 #include "MessageBroker.h"
 #include <vector>
-#include <iostream>
+
+#ifndef NDEBUG
+#warning using debug version of MessageBroker
+#endif
 
 MessageBroker::MessageBroker(std::shared_ptr<ILogger>& _logger):
+#ifdef NDEBUG
+    curSubs(std::set<IMessageSubscriber*>()),
+#endif
     logger(_logger)
 { }
+
+#ifdef NDEBUG
+
+void MessageBroker::AddSubscriber(IMessageSubscriber &subscriber)
+{
+    const std::lock_guard<std::mutex> guard(opLock);
+    auto subs=curSubs.Get();
+    subs.insert(&subscriber);
+    curSubs.Set(subs);
+}
+
+void MessageBroker::SendMessage(const void* const source, const IMessage& message)
+{
+    opLock.lock();
+    auto subs=curSubs.Get();
+    opLock.unlock();
+
+    for(const auto &subscriber: subs)
+        if(subscriber->ReadyForMessage(message.msgType))
+            subscriber->OnMessage(source,message);
+}
+
+#else
 
 void MessageBroker::AddSubscriber(IMessageSubscriber& subscriber)
 {
@@ -53,3 +82,5 @@ void MessageBroker::SendMessage(const void* const source, const IMessage& messag
             callers.erase(std::this_thread::get_id());
     }
 }
+
+#endif

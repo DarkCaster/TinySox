@@ -6,17 +6,27 @@
 #include "IMessage.h"
 #include "ILogger.h"
 
+#ifdef NDEBUG
+#include "ImmutableStorage.h"
+#else
 #include <thread>
-#include <mutex>
 #include <map>
+#endif
+
+#include <mutex>
 #include <set>
+#include <memory>
 
 class MessageBroker : public IMessageSender
 {
     private:
         std::mutex opLock;
+#ifdef NDEBUG
+        ImmutableStorage<std::set<IMessageSubscriber*>> curSubs;
+#else
         std::set<IMessageSubscriber*> subscribers;
         std::map<std::thread::id,std::set<const void*>*> callers;
+#endif
         std::shared_ptr<ILogger> logger;
     public:
         MessageBroker(std::shared_ptr<ILogger> &_logger);
